@@ -1,5 +1,6 @@
 <?php
 define('ALLOWED_ACCESS', true);
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 include __DIR__ . '/header.inc.php';
 ?>
 <!DOCTYPE html>
@@ -105,7 +106,7 @@ p {
             <p style="margin-top:20px; font-size:0.9em; color:#fff; font-style:italic;">
                 ⚔️ <?= translate('note_dev_info', 'Note: I created this project alone for fun, learning, and testing. While I’ve tried to make it look and feel professional, it’s not a team project, and some bugs may still exist. Enjoy exploring and give feedback if you find issues!') ?>
             </p>
-            <a href="step2_check" class="btn"><?= translate('btn_begin_install', 'Begin Installation') ?></a>
+            <a href="<?php echo $base_path; ?>install/step2_check" class="btn"><?= translate('btn_begin_install', 'Begin Installation') ?></a>
         </div>
     </main>
 

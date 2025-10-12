@@ -1,19 +1,21 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once 'C:\xampp\htdocs\Sahtout\includes\session.php';
-require_once 'C:\xampp\htdocs\Sahtout\languages\language.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
 $page_class = 'realm';
-require_once 'C:\xampp\htdocs\Sahtout\includes\header.php';
+require_once $project_root . 'includes/header.php';
 
 $errors = [];
 $success = false;
-$realmsFile = realpath('C:\xampp\htdocs\Sahtout\includes\realm_status.php');
+$realmsFile = realpath($project_root . 'includes/realm_status.php');
 $defaultLogo = 'img/logos/realm1_logo.webp';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -65,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid WebP file. MIME type must be image/webp.');
         }
         else {
-            $upload_dir = 'C:\xampp\htdocs\Sahtout\img\logos\\';
+            $upload_dir = $project_root . 'img/logos/';
             if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
                 $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Upload directory is not accessible or writable.');
             } else {
@@ -149,165 +151,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=block" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-         body{
-            background-color: #212529;
-        }
-        /* Main content */
-        .main-content {
-            padding-top: 80px; /* Clear header */
-            min-height: calc(100vh - 80px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .content {
-            padding: 1.5rem;
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            margin: 1rem;
-            color: #212529;
-            text-align: center;
-            flex-grow: 1;
-        }
-
-        /* Status, error, and success messages */
-        .status-box, .error-box, .success-box {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            text-align: left;
-        }
-
-        .status-box {
-            background: #e9ecef;
-            border: 1px solid #ced4da;
-        }
-
-        .error-box {
-            background: #f8d7da;
-            border: 1px solid #f5c2c7;
-        }
-
-        .success-box {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-        }
-
-        .db-status {
-            display: flex;
-            align-items: center;
-            margin: 0.5rem 0;
-        }
-
-        .db-status-icon {
-            margin-right: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .db-status-success {
-            color: #28a745;
-        }
-
-        .db-status-error {
-            color: #dc3545;
-        }
-
-        .db-status-muted {
-            color: #6c757d;
-        }
-
-        .error {
-            color: #dc3545;
-            font-weight: 500;
-            font-family: 'Roboto', Arial, sans-serif;
-            font-size: 0.95rem;
-        }
-
-        .success, .text-success {
-            color: #28a745;
-            font-weight: 500;
-            font-family: 'Roboto', Arial, sans-serif;
-            font-size: 0.95rem;
-        }
-
-        .text-muted {
-            color: #6c757d;
-            font-weight: 500;
-            font-family: 'Roboto', Arial, sans-serif;
-            font-size: 0.95rem;
-        }
-
-        /* Constrain form elements */
-        .form-control, .form-select {
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Custom file input styling */
-        .custom-file-upload {
-            display: inline-block;
-            width: 100%;
-            text-align: left;
-        }
-        .custom-file-upload input[type="file"] {
-            display: none;
-        }
-        .custom-file-upload .btn {
-            width: 200px;
-            display: flex;
-            margin: auto;
-            justify-content: center;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-            border: 1px solid #ced4da;
-            color: #ffffffff;
-            background-color: #0b71e6ff;
-            transition: all 0.3s ease;
-        }
-        .custom-file-upload .btn:hover {
-            font-family: 'Roboto', Arial, sans-serif;
-            font-size: 0.95rem;
-        }
-        .custom-file-upload .file-name {
-            margin-top: 0.5rem;
-            text-align: center;
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-
-        /* Mobile adjustments */
-        @media (max-width: 768px) {
-            .main-content {
-                padding-top: 60px; /* Adjust for mobile header and navbar */
-                padding-left: 0;
-                padding-right: 0;
-            }
-
-            .content {
-                margin: 0.5rem;
-                padding: 1rem;
-            }
-
-            .form-control, .form-select, .status-box, .error-box, .success-box {
-                max-width: 100%;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/realm.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/settings_navbar.css">
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
             <!-- Admin Sidebar -->
-            <?php include 'C:\xampp\htdocs\Sahtout\includes\admin_sidebar.php'; ?>
+            <?php include $project_root . 'includes/admin_sidebar.php'; ?>
             
             <!-- Main Content with Settings Navbar -->
             <main class="col-md-10 main-content">
-                <?php include 'C:\xampp\htdocs\Sahtout\pages\admin\settings\settings_navbar.php'; ?>
+                <?php include $project_root . 'pages/admin/settings/settings_navbar.php'; ?>
                 <div class="content">
                     <h2><?php echo translate('section_realm_config', 'Realm Configuration'); ?></h2>
 
@@ -336,7 +192,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="mb-3 col-md-6 mx-auto">
                             <label for="realm_ip" class="form-label"><?php echo translate('label_realm_ip', 'Realm IP / Host'); ?></label>
-                            <input type="text" class="form-control" id="realm_ip" name="realm_ip" placeholder="127.0.0.1" value="<?php echo htmlspecialchars($_POST['realm_ip'] ?? '127.0.0.1'); ?>" required>
+                            <input type="text" class="form-control" id="realm_ip" name="realm_ip" placeholder="127.0.0.1" value="<?php echo htmlspecialchars($_POST['realm_ip'] ?? '127.0.1.1'); ?>" required>
                         </div>
                         <div class="mb-3 col-md-6 mx-auto">
                             <label for="realm_port" class="form-label"><?php echo translate('label_realm_port', 'Realm Port'); ?></label>
@@ -357,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </main>
         </div>
     </div>
-    <?php require_once 'C:\xampp\htdocs\Sahtout\includes\footer.php'; ?>
+    <?php require_once $project_root . 'includes/footer.php'; ?>
     <script>
         // Update file name display when a file is selected
         document.getElementById('realm_logo').addEventListener('change', function() {

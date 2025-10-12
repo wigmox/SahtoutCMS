@@ -1,10 +1,15 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../includes/session.php'; // Includes config.php for DB
-require_once '../includes/config.mail.php'; // Email config
-require_once '../languages/language.php'; // Translations
 
-$page_class = 'activate_account'; // For CSS body class
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../includes/paths.php';
+
+// Use $project_root for filesystem includes
+require_once $project_root . 'includes/session.php'; // Includes config.php for DB
+require_once $project_root . 'includes/config.mail.php'; // Email config
+require_once $project_root . 'languages/language.php'; // Translations
+
+$page_class = 'activate';
 
 $errors = [];
 $success = '';
@@ -51,7 +56,7 @@ if (!$token) {
                             // Send confirmation email
                             sendActivationConfirmationEmail($account['username'], $account['email']);
                             $success = translate('success_account_activated', 'Your account has been activated! You will be redirected to the login page shortly.');
-                            header("Refresh: 3; url=/sahtout/login");
+                            header("Refresh: 3; url={$base_path}login");
                         } else {
                             $errors[] = translate('error_delete_failed', 'Failed to delete pending account: ') . $site_db->error;
                         }
@@ -69,14 +74,13 @@ if (!$token) {
 // Function to send confirmation email
 // ==========================
 function sendActivationConfirmationEmail($username, $email) {
-    global $errors;
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+    global $errors, $base_path, $project_root;
     try {
         $mail = getMailer();
         $mail->addAddress($email, $username);
         $mail->AddEmbeddedImage('logo.png', 'logo_cid');
         $mail->Subject = translate('email_subject', 'Account Activation Confirmation');
-        $login_link = $protocol . $_SERVER['HTTP_HOST'] . "/sahtout/login";
+        $login_link = $base_path . 'login';
         $mail->Body = "<h2>" . str_replace('{username}', htmlspecialchars($username), translate('email_greeting', 'Welcome, {username}!')) . "</h2>
             <img src='cid:logo_cid' alt='Sahtout logo'>
             <p>" . translate('email_success', 'Your account has been successfully activated.') . "</p>
@@ -91,11 +95,10 @@ function sendActivationConfirmationEmail($username, $email) {
     }
 }
 
-// ==========================
-// Output (AFTER logic)
-// ==========================
-require_once '../includes/header.php';
+// Include header.php after logic to avoid headers-already-sent error
+require_once $project_root . 'includes/header.php';
 ?>
+
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($_SESSION['lang'] ?? 'en'); ?>">
 <head>
@@ -105,33 +108,9 @@ require_once '../includes/header.php';
     <meta name="robots" content="index">
     <title><?php echo translate('page_title', 'Activate Account'); ?></title>
     <style>
-        body {
-            background: url('/sahtout/img/backgrounds/bg-register.jpg') no-repeat center center fixed;
-            background-size: cover;
-            color: #fff;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+       :root{
+            --bg-activate:url('<?php echo $base_path; ?>img/backgrounds/bg-register.jpg');
         }
-        main { flex: 1; display: flex; justify-content: center; align-items: center; }
-        .register-container {
-            max-width: 700px;
-            width: calc(100% - 2rem);
-            margin: 2rem auto;
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #ffd700;
-            border-radius: 8px;
-            padding: 2.5rem;
-            text-align: center;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-        .register-title { color: #ffd700; font-size: 2.8rem; margin-bottom: 1.2rem; }
-        .register-form p.error { color: #ff0000; font-size: 1.2rem; }
-        .register-form p.success { color: #00ff00; font-size: 1.2rem; }
-        .login-link-container { margin-top: 1.5rem; font-size: 1.1rem; }
-        .login-link-container a { color: #ffd700; text-decoration: none; }
-        .login-link-container a:hover { color: #ffe600; text-decoration: underline; }
     </style>
 </head>
 <body class="activate_account">
@@ -147,11 +126,11 @@ require_once '../includes/header.php';
             <?php elseif ($success): ?>
                 <div class="register-form">
                     <p class="success"><?php echo htmlspecialchars($success); ?></p>
-                    <p class="login-link-container"><a href="/sahtout/login"><?php echo translate('login_link', 'Click here to login'); ?></a></p>
+                    <p class="login-link-container"><?php echo sprintf(translate('login_link', '<a href="%s">Click here to login</a>'), htmlspecialchars($base_path . 'login')); ?></p>
                 </div>
             <?php endif; ?>
         </section>
     </main>
-    <?php include_once '../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

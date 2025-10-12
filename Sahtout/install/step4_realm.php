@@ -1,11 +1,12 @@
 <?php
 define('ALLOWED_ACCESS', true);
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 include __DIR__ . '/header.inc.php';
 
 $errors = [];
 $success = false;
 $realmsFile = realpath(__DIR__ . '/../includes/realm_status.php');
-$defaultLogo = 'img/logos/realm1_logo.webp';
+$defaultLogo = 'img/logos/realm1_logo.webp'; 
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $realmName = trim($_POST['realm_name'] ?? '');
@@ -63,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $new_file_name = 'realm_logo.' . $file_ext;
                 $destination = $upload_dir . $new_file_name;
                 if (move_uploaded_file($file_tmp, $destination)) {
-                    $logo_path = "img/logos/$new_file_name";
+                    $logo_path = "img/logos/$new_file_name"; 
                 } else {
                     $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Failed to upload realm emblem. Verify server permissions.');
                 }
@@ -190,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <span class="db-status-icon db-status-success">✔</span>
                 <span class="success"><?php echo translate('msg_realm_saved', 'realm configuration stored successfully!'); ?></span>
             </div>
-            <a href="step5_mail" class="btn"><?php echo translate('btn_proceed_to_mail', 'Advance to Email Configuration ➡️'); ?></a>
+            <a href="<?php echo $base_path; ?>install/step5_mail" class="btn"><?php echo translate('btn_proceed_to_mail', 'Advance to Email Configuration ➡️'); ?></a>
         <?php endif; ?>
 
         <?php if (!$success): ?>

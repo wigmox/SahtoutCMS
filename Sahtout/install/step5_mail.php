@@ -1,5 +1,6 @@
 <?php
 define('ALLOWED_ACCESS', true);
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 require_once __DIR__ . '/header.inc.php';
 require_once __DIR__ . '/languages/language.php';
 
@@ -360,7 +361,7 @@ function getMailer(): PHPMailer {
 
             <?php if ($success): ?>
                 <p class="success">✔ <?= translate('msg_mail_saved', 'Email configuration saved! Test email sent successfully.') ?></p>
-                <a href="step6_soap.php" class="btn"><?= translate('btn_proceed_to_soap', 'Proceed to Soap Configuration ➡️') ?></a>
+                <a href="<?php echo $base_path; ?>install/step6_soap" class="btn"><?= translate('btn_proceed_to_soap', 'Proceed to Soap Configuration ➡️') ?></a>
             <?php endif; ?>
 
             <?php if (!$success): ?>

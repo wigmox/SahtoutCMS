@@ -1,5 +1,6 @@
 <?php
 define('ALLOWED_ACCESS', true);
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 include __DIR__ . '/header.inc.php';
 
 // Required PHP extensions
@@ -31,6 +32,9 @@ foreach ($optionalApacheModules as $mod) $optionalApacheResults[$mod] = isApache
 $allRequiredPass = $phpVersionPass 
     && !in_array(false, $requiredExtResults, true) 
     && !in_array(false, $requiredApacheResults, true);
+
+// Configurable XAMPP path for help content
+$xamppPath = 'C:\\xampp'; // Adjust this path as needed or make it configurable
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($langCode ?? 'en') ?>">
@@ -133,7 +137,7 @@ $allRequiredPass = $phpVersionPass
                 <h3><?= translate('help_php_extensions', 'PHP Extensions') ?></h3>
                 <p><?= translate('help_php_desc', 'To enable a PHP extension:') ?></p>
                 <ul>
-                    <li id="path_color"><?= translate('help_php_path', 'Go to C:\\xampp\\php') ?></li>
+                    <li id="path_color"><?= translate('help_php_path', 'Go to ' . $xamppPath . '\\php') ?></li>
                     <li><?= translate('help_php_ini', 'Locate your <code>php.ini</code> file.') ?></li>
                     <li><?= translate('help_php_uncomment', 'Find the line with the extension name, e.g., <code>;extension=curl</code>.') ?></li>
                     <li><?= translate('help_php_enable', 'Remove the semicolon <code>;</code> to enable it: <code>extension=curl</code>.') ?></li>
@@ -142,15 +146,15 @@ $allRequiredPass = $phpVersionPass
                 <h3><?= translate('help_apache_modules', 'Apache Modules') ?></h3>
                 <p><?= translate('help_apache_desc', 'To enable Apache modules:') ?></p>
                 <ul>
-                    <li id="path_color"><?= translate('help_apache_path', 'Go to C:\\xampp\\apache\\conf') ?></li>
+                    <li id="path_color"><?= translate('help_apache_path', 'Go to ' . $xamppPath . '\\apache\\conf') ?></li>
                     <li><?= translate('help_apache_httpd', 'For Windows XAMPP, check the <code>httpd.conf</code> file and uncomment the module lines.') ?></li>
                     <li><?= translate('help_apache_restart', 'Restart Apache:') ?></li>
                 </ul>
-                <p style="text-align: center;"><img src="phphttpd.png" alt="<?= translate('img_example', 'image example') ?>" width="700"></p>
+                <p style="text-align: center;"><img src="<?php echo $base_path; ?>install/phphttpd.png" alt="<?= translate('img_example', 'image example') ?>" width="700"></p>
             </div>
 
             <?php if ($allRequiredPass): ?>
-                <a href="step3_db" class="btn"><?= translate('btn_proceed_to_db', 'Proceed to Database Setup ➡️') ?></a>
+                <a href="<?php echo $base_path; ?>install/step3_db" class="btn"><?= translate('btn_proceed_to_db', 'Proceed to Database Setup ➡️') ?></a>
             <?php else: ?>
                 <p class="fail"><?= translate('err_required_failed', '❌ Some required checks failed. Fix them before continuing.') ?></p>
             <?php endif; ?>

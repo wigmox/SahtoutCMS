@@ -13,14 +13,14 @@ set_error_handler(function($severity, $message, $file, $line) {
     file_put_contents('claim_log.txt', date('[Y-m-d H:i:s] ') . "PHP Error [$severity]: $message in $file on line $line" . PHP_EOL, FILE_APPEND);
     return true; // Suppress display of errors
 });
-
+require_once __DIR__ . '/../../includes/paths.php';
 define('ALLOWED_ACCESS', true);
 
 // Load configuration, session, and translation system
 try {
-    require_once '../../includes/config.php';
-    require_once '../../includes/session.php';
-    require_once '../../languages/language.php'; // Adjusted path based on login.php example
+    require_once $project_root . 'includes/config.php';
+    require_once $project_root . 'includes/session.php';
+    require_once $project_root . 'languages/language.php';
 } catch (Exception $e) {
     file_put_contents('claim_log.txt', date('[Y-m-d H:i:s] ') . "Include failed: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
     ob_end_clean();

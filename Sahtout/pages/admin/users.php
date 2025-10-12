@@ -1,14 +1,18 @@
 <?php
 define('ALLOWED_ACCESS', true);
-// Include session, language, and config
-require_once __DIR__ . '/../../includes/session.php'; // Includes config.php
-require_once __DIR__ . '/../../languages/language.php'; // Include translation system
 
+// Include session, language, and paths
+require_once __DIR__ . '/../../includes/paths.php';
+require_once $project_root . 'includes/session.php'; // Includes config.php
+require_once $project_root . 'languages/language.php'; // Include translation system
 $page_class = 'users';
-
+define('DB_AUTH', $db_auth);
+define('DB_CHAR', $db_char);
+define('DB_WORLD', $db_world);
+define('DB_SITE', $db_site);
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
@@ -17,12 +21,11 @@ global $site_db, $auth_db, $char_db;
 
 // Check user role from user_currencies
 $user_id = $_SESSION['user_id'];
-$role_query = "SELECT role FROM user_currencies WHERE account_id = ?";
+$role_query = "SELECT role FROM " . DB_SITE . ".user_currencies WHERE account_id = ?";
 $stmt = $site_db->prepare($role_query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
-
 if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
     $_SESSION['role'] = $row['role'];
@@ -33,7 +36,7 @@ $stmt->close();
 
 // Restrict access to admin or moderator only
 if (!in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
@@ -62,7 +65,6 @@ if (isset($_GET['gmlevel_filter']) && in_array($_GET['gmlevel_filter'], ['player
 if (isset($_GET['sort_id']) && in_array($_GET['sort_id'], ['asc', 'desc'])) {
     $sort_id = $_GET['sort_id'];
 }
-
 $users_per_page = 10; // Limit to 10 users per page
 $website_page = isset($_GET['website_page']) ? max(1, (int)$_GET['website_page']) : 1;
 $ingame_page = isset($_GET['ingame_page']) ? max(1, (int)$_GET['ingame_page']) : 1;
@@ -82,19 +84,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $tokens = (int)$_POST['tokens'];
             $role = in_array($_POST['role'], ['player', 'moderator', 'admin']) ? $_POST['role'] : 'player';
             $email = trim($_POST['email']);
-
             // Update user_currencies (points, tokens, role)
-            $stmt = $site_db->prepare("UPDATE user_currencies SET points = ?, tokens = ?, role = ? WHERE account_id = ?");
+            $stmt = $site_db->prepare("UPDATE " . DB_SITE . ".user_currencies SET points = ?, tokens = ?, role = ? WHERE account_id = ?");
             $stmt->bind_param("iiss", $points, $tokens, $role, $account_id);
             $success = $stmt->execute();
             $stmt->close();
-
             // Update email in account table
-            $stmt = $auth_db->prepare("UPDATE account SET email = ? WHERE id = ?");
+            $stmt = $auth_db->prepare("UPDATE " . DB_AUTH . ".account SET email = ? WHERE id = ?");
             $stmt->bind_param("si", $email, $account_id);
             $success = $success && $stmt->execute();
             $stmt->close();
-
             if ($success) {
                 $update_message = '<div class="alert alert-success">' . translate('admin_users_update_success', 'User updated successfully.') . '</div>';
             } else {
@@ -110,51 +109,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $ban_action = $_POST['ban_action'] ?? '';
             $gmlevel = isset($_POST['gmlevel']) && in_array($_POST['gmlevel'], ['player', '1', '2', '3']) ? $_POST['gmlevel'] : '';
             $success = true;
-
             if ($ban_action === 'ban') {
                 $ban_reason = trim($_POST['ban_reason']);
                 $ban_duration = $_POST['ban_duration'];
                 $ban_time = time();
                 $unban_time = ($ban_duration === 'permanent') ? 0 : $ban_time + (int)$ban_duration;
-
-                $stmt = $auth_db->prepare("INSERT INTO account_banned (id, bandate, unbandate, bannedby, banreason, active) VALUES (?, ?, ?, ?, ?, 1)");
+                $stmt = $auth_db->prepare("INSERT INTO " . DB_AUTH . ".account_banned (id, bandate, unbandate, bannedby, banreason, active) VALUES (?, ?, ?, ?, ?, 1)");
                 $banned_by = $_SESSION['username'];
                 $stmt->bind_param("iiiss", $account_id, $ban_time, $unban_time, $banned_by, $ban_reason);
                 $success = $stmt->execute();
                 $stmt->close();
             } elseif ($ban_action === 'unban') {
-                $stmt = $auth_db->prepare("UPDATE account_banned SET active = 0 WHERE id = ? AND active = 1");
+                $stmt = $auth_db->prepare("UPDATE " . DB_AUTH . ".account_banned SET active = 0 WHERE id = ? AND active = 1");
                 $stmt->bind_param("i", $account_id);
                 $success = $stmt->execute();
                 $stmt->close();
             } elseif ($ban_action === 'change_gm_role' && $gmlevel !== '') {
                 // Handle GM role change
                 if ($gmlevel === 'player') {
-                    $stmt = $auth_db->prepare("DELETE FROM account_access WHERE id = ?");
+                    $stmt = $auth_db->prepare("DELETE FROM " . DB_AUTH . ".account_access WHERE id = ?");
                     $stmt->bind_param("i", $account_id);
                     $success = $stmt->execute();
                     $stmt->close();
                 } else {
                     $gmlevel_value = (int)$gmlevel;
-                    $stmt = $auth_db->prepare("SELECT COUNT(*) as count FROM account_access WHERE id = ?");
+                    $stmt = $auth_db->prepare("SELECT COUNT(*) as count FROM " . DB_AUTH . ".account_access WHERE id = ?");
                     $stmt->bind_param("i", $account_id);
                     $stmt->execute();
                     $result = $stmt->get_result()->fetch_assoc();
                     $exists = $result['count'] > 0;
                     $stmt->close();
-
                     if ($exists) {
-                        $stmt = $auth_db->prepare("UPDATE account_access SET gmlevel = ? WHERE id = ?");
+                        $stmt = $auth_db->prepare("UPDATE " . DB_AUTH . ".account_access SET gmlevel = ? WHERE id = ?");
                         $stmt->bind_param("ii", $gmlevel_value, $account_id);
                     } else {
-                        $stmt = $auth_db->prepare("INSERT INTO account_access (id, gmlevel) VALUES (?, ?)");
+                        $stmt = $auth_db->prepare("INSERT INTO " . DB_AUTH . ".account_access (id, gmlevel) VALUES (?, ?)");
                         $stmt->bind_param("ii", $account_id, $gmlevel_value);
                     }
                     $success = $stmt->execute();
                     $stmt->close();
                 }
             }
-
             if ($success && empty($update_message)) {
                 $update_message = '<div class="alert alert-success">' . translate('admin_users_action_success', 'Action completed successfully.') . '</div>';
             } elseif (empty($update_message)) {
@@ -165,7 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Count total website users for pagination
-$count_query = "SELECT COUNT(*) as total FROM user_currencies uc JOIN acore_auth.account a ON uc.account_id = a.id WHERE 1=1";
+$count_query = "SELECT COUNT(*) as total FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1";
 $params = [];
 $types = '';
 if ($search_username) {
@@ -193,8 +188,8 @@ $stmt->close();
 $total_website_pages = ceil($total_website_users / $users_per_page);
 
 // Fetch website users with email from account table
-$users_query = "SELECT uc.account_id, uc.username, uc.avatar, uc.points, uc.tokens, uc.role, uc.last_updated, a.email 
-                FROM user_currencies uc JOIN acore_auth.account a ON uc.account_id = a.id WHERE 1=1";
+$users_query = "SELECT uc.account_id, uc.username, uc.avatar, uc.points, uc.tokens, uc.role, uc.last_updated, a.email
+                FROM " . DB_SITE . ".user_currencies uc JOIN " . DB_AUTH . ".account a ON uc.account_id = a.id WHERE 1=1";
 $params = [];
 $types = '';
 if ($search_username) {
@@ -225,7 +220,7 @@ $users_result = $stmt->get_result();
 $stmt->close();
 
 // Count total in-game accounts for pagination
-$count_query = "SELECT COUNT(*) as total FROM acore_auth.account a LEFT JOIN acore_auth.account_access aa ON a.id = aa.id WHERE 1=1";
+$count_query = "SELECT COUNT(*) as total FROM " . DB_AUTH . ".account a LEFT JOIN " . DB_AUTH . ".account_access aa ON a.id = aa.id WHERE 1=1";
 $params = [];
 $types = '';
 if ($search_username) {
@@ -239,7 +234,7 @@ if ($search_email) {
     $types .= 's';
 }
 if ($ban_filter === 'banned') {
-    $count_query .= " AND EXISTS (SELECT 1 FROM acore_auth.account_banned ab WHERE ab.id = a.id AND ab.active = 1)";
+    $count_query .= " AND EXISTS (SELECT 1 FROM " . DB_AUTH . ".account_banned ab WHERE ab.id = a.id AND ab.active = 1)";
 }
 if ($gmlevel_filter !== '') {
     if ($gmlevel_filter === 'player') {
@@ -260,9 +255,9 @@ $stmt->close();
 $total_ingame_pages = ceil($total_ingame_accounts / $users_per_page);
 
 // Fetch in-game accounts and their status
-$accounts_query = "SELECT a.id, a.username, a.email, a.joindate, a.last_login, a.online, aa.gmlevel 
-                  FROM acore_auth.account a 
-                  LEFT JOIN acore_auth.account_access aa ON a.id = aa.id 
+$accounts_query = "SELECT a.id, a.username, a.email, a.joindate, a.last_login, a.online, aa.gmlevel
+                  FROM " . DB_AUTH . ".account a
+                  LEFT JOIN " . DB_AUTH . ".account_access aa ON a.id = aa.id
                   WHERE 1=1";
 $params = [];
 $types = '';
@@ -277,7 +272,7 @@ if ($search_email) {
     $types .= 's';
 }
 if ($ban_filter === 'banned') {
-    $accounts_query .= " AND EXISTS (SELECT 1 FROM acore_auth.account_banned ab WHERE ab.id = a.id AND ab.active = 1)";
+    $accounts_query .= " AND EXISTS (SELECT 1 FROM " . DB_AUTH . ".account_banned ab WHERE ab.id = a.id AND ab.active = 1)";
 }
 if ($gmlevel_filter !== '') {
     if ($gmlevel_filter === 'player') {
@@ -308,8 +303,8 @@ $stmt->close();
 $account_ids = array_keys($accounts);
 if (!empty($account_ids)) {
     $placeholders = implode(',', array_fill(0, count($account_ids), '?'));
-    $stmt = $auth_db->prepare("SELECT id, bandate, unbandate, banreason 
-                               FROM acore_auth.account_banned 
+    $stmt = $auth_db->prepare("SELECT id, bandate, unbandate, banreason
+                               FROM " . DB_AUTH . ".account_banned
                                WHERE id IN ($placeholders) AND active = 1");
     $stmt->bind_param(str_repeat('i', count($account_ids)), ...$account_ids);
     $stmt->execute();
@@ -318,11 +313,10 @@ if (!empty($account_ids)) {
         $accounts[$ban['id']]['banInfo'] = $ban;
     }
     $stmt->close();
-
     // Fetch characters for the accounts
-    $stmt = $char_db->prepare("SELECT guid, account, name, race, class, gender, level 
-                               FROM characters 
-                               WHERE account IN ($placeholders) 
+    $stmt = $char_db->prepare("SELECT guid, account, name, race, class, gender, level
+                               FROM " . DB_CHAR . ".characters
+                               WHERE account IN ($placeholders)
                                ORDER BY account, name");
     $stmt->bind_param(str_repeat('i', count($account_ids)), ...$account_ids);
     $stmt->execute();
@@ -335,6 +329,7 @@ if (!empty($account_ids)) {
 
 // Helper functions for character and status display
 function getRaceIcon($race, $gender) {
+    global $base_path;
     $races = [
         1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
         5 => 'undead', 6 => 'tauren', 7 => 'gnome', 8 => 'troll',
@@ -343,28 +338,26 @@ function getRaceIcon($race, $gender) {
     $gender_folder = ($gender == 1) ? 'female' : 'male';
     $race_name = $races[$race] ?? 'default';
     $image = $race_name . '.png';
-    return '<img src="/sahtout/img/accountimg/race/' . $gender_folder . '/' . $image . '" alt="' . translate('admin_users_race_icon_alt', 'Race Icon') . '" class="account-sahtout-icon">';
+    return '<img src="' . $base_path . 'img/accountimg/race/' . $gender_folder . '/' . $image . '" alt="' . translate('admin_users_race_icon_alt', 'Race Icon') . '" class="account-sahtout-icon">';
 }
-
 function getClassIcon($class) {
+    global $base_path;
     $icons = [
         1 => 'warrior.webp', 2 => 'paladin.webp', 3 => 'hunter.webp', 4 => 'rogue.webp',
         5 => 'priest.webp', 6 => 'deathknight.webp', 7 => 'shaman.webp', 8 => 'mage.webp',
         9 => 'warlock.webp', 11 => 'druid.webp'
     ];
-    return '<img src="/sahtout/img/accountimg/class/' . ($icons[$class] ?? 'default.jpg') . '" alt="' . translate('admin_users_class_icon_alt', 'Class Icon') . '" class="account-sahtout-icon">';
+    return '<img src="' . $base_path . 'img/accountimg/class/' . ($icons[$class] ?? 'default.jpg') . '" alt="' . translate('admin_users_class_icon_alt', 'Class Icon') . '" class="account-sahtout-icon">';
 }
-
 function getFactionIcon($race) {
+    global $base_path;
     $allianceRaces = [1, 3, 4, 7, 11]; // Human, Dwarf, Night Elf, Gnome, Draenei
     $faction = in_array($race, $allianceRaces) ? 'alliance.png' : 'horde.png';
-    return '<img src="/sahtout/img/accountimg/faction/' . $faction . '" alt="' . translate('admin_users_faction_icon_alt', 'Faction Icon') . '" class="account-sahtout-icon">';
+    return '<img src="' . $base_path . 'img/accountimg/faction/' . $faction . '" alt="' . translate('admin_users_faction_icon_alt', 'Faction Icon') . '" class="account-sahtout-icon">';
 }
-
 function getOnlineStatus($online) {
     return $online ? "<span style='color: #55ff55'>" . translate('admin_users_status_online', 'Online') . "</span>" : "<span style='color: #ff5555'>" . translate('admin_users_status_offline', 'Offline') . "</span>";
 }
-
 function getAccountStatus($banInfo) {
     if (!empty($banInfo)) {
         $reason = htmlspecialchars($banInfo['banreason'] ?? translate('admin_users_no_reason_provided', 'No reason provided'));
@@ -373,7 +366,6 @@ function getAccountStatus($banInfo) {
     }
     return "<span style='color: #05f30594'>" . translate('admin_users_status_active', 'Active') . "</span>";
 }
-
 function getGMLevel($gmlevel) {
     if (is_null($gmlevel)) {
         return "<span style='color: #6c757d'>" . translate('admin_users_gmlevel_player', 'Player') . "</span>";
@@ -384,7 +376,6 @@ function getGMLevel($gmlevel) {
 // Determine active tab: default to In-Game tab if ban_filter or gmlevel_filter is set
 $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_filter || $gmlevel_filter ? 'ingame' : 'website';
 ?>
-
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($_SESSION['lang'] ?? 'en'); ?>">
 <head>
@@ -394,311 +385,24 @@ $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_
     <meta name="robots" content="noindex">
     <title><?php echo translate('admin_users_page_title', 'User Management'); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/footer.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/users.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/footer.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        .account-sahtout-icon {
-            width: 24px;
-            height: 24px;
-            vertical-align: middle;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-        }
-        .alert {
-            margin-bottom: 1rem;
-        }
-        .search-form {
-            margin-bottom: 1.5rem;
-        }
-        .pagination {
-            justify-content: center;
-            margin-top: 1.5rem;
-        }
-        .dashboard-container {
-            flex-grow: 1;
-        }
-        html, body {
-            height: 100%;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-        }
-        body {
-            background-color: #ffffff;
-            color: #000;
-            font-family: Arial, sans-serif;
-        }
-        .wrapper {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .dashboard-title {
-            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-            font-size: 2.5rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        .card {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .card-header {
-            background: rgba(230, 230, 230, 0.9);
-            border-bottom: 1px solid #ccc;
-            color: #333;
-            font-size: 1.25rem;
-            padding: 0.75rem 1rem;
-        }
-        .card-body {
-            padding: 1rem;
-        }
-        .table {
-            color: #333;
-            background: none;
-            width: 100%;
-        }
-        .table th, .table td {
-            border: 1px solid #ccc;
-            padding: 0.5rem;
-            transition: all 0.3s ease;
-        }
-        .table th {
-            background: rgba(240, 240, 240, 0.9);
-            color: #000;
-        }
-        .table .btn {
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            margin-right: 0.5rem;
-        }
-        .table .btn-edit {
-            background: #007bff;
-            border: 2px solid #0056b3;
-            color: #fff;
-        }
-        .table .btn-edit:hover {
-            background: #0056b3;
-            border-color: #003087;
-        }
-        .table .btn-manage {
-            background: #28a745;
-            border: 2px solid #1e7e34;
-            color: #fff;
-        }
-        .table .btn-manage:hover {
-            background: #1e7e34;
-            border-color: #155724;
-        }
-        .form-control, .form-select {
-            background: #f9f9f9;
-            color: #333;
-            border: 1px solid #999;
-        }
-        .form-control:focus, .form-select:focus {
-            background: #fff;
-            color: #000;
-            border-color: #666;
-            box-shadow: none;
-        }
-        .form-control::placeholder {
-            color: #666;
-            font-weight: bold;
-            opacity: 1;
-        }
-        .modal-content {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #ccc;
-            border-radius: 8px;
-        }
-        .modal-header, .modal-footer {
-            border-color: #ccc;
-        }
-        .modal-title {
-            color: #333;
-        }
-        .btn-close {
-            background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23333'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707A1 1 0 01.293.293z'/%3e%3c/svg%3e") center/1em auto no-repeat;
-        }
-        .status-admin {
-            color: #28a745;
-            font-weight: bold;
-        }
-        .status-moderator {
-            color: #17a2b8;
-            font-weight: bold;
-        }
-        .status-player {
-            color: #6c757d;
-            font-weight: bold;
-        }
-        .table tbody tr:hover {
-            background: rgba(200, 200, 200, 0.2);
-            cursor: pointer;
-        }
-        .table tbody tr:hover td {
-            color: #000;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .form-check {
-            padding-left: 2rem;
-            margin-bottom: 0.5rem;
-        }
-        .form-check-input {
-            width: 1.25rem;
-            height: 1.25rem;
-            margin-top: 0.25rem;
-            background-color: #f9f9f9;
-            border: 1px solid #999;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .form-check-input:focus {
-            border-color: #666;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-            outline: none;
-        }
-        .form-check-input:checked {
-            background-color: #007bff;
-            border-color: #0056b3;
-            transform: scale(1.1);
-        }
-        .form-check-input:hover {
-            border-color: #666;
-            background-color: #e9ecef;
-        }
-        .form-check-label {
-            color: #333;
-            font-size: 1rem;
-            margin-left: 0.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .form-check-label:hover {
-            color: #000;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .nav-tabs {
-            border-bottom: 2px solid #ccc;
-            margin-bottom: 1rem;
-        }
-        .nav-tabs .nav-link {
-            background: #f9f9f9;
-            color: #333;
-            border: 1px solid #999;
-            border-bottom: none;
-            border-radius: 4px 4px 0 0;
-            margin-right: 0.5rem;
-            padding: 0.5rem 1rem;
-            transition: all 0.3s ease;
-        }
-        .nav-tabs .nav-link:hover {
-            background: #e9ecef;
-            color: #000;
-            border-color: #666;
-        }
-        .nav-tabs .nav-link.active {
-            background: #fff;
-            color: #000;
-            border: 1px solid #ccc;
-            border-bottom: 2px solid #fff;
-        }
-        .character-collapse {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        .character-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 0.5rem;
-        }
-        .character-item {
-            display: flex;
-            align-items: center;
-            font-size: 0.9rem;
-            color: #333;
-        }
-        .pagination .page-link {
-            background: #f9f9f9;
-            color: #333;
-            border: 1px solid #999;
-            margin: 0 0.2rem;
-            padding: 0.5rem 0.75rem;
-            transition: all 0.3s ease;
-        }
-        .pagination .page-link:hover {
-            background: #e9ecef;
-            color: #000;
-            border-color: #666;
-        }
-        .pagination .page-item.active .page-link {
-            background: #007bff;
-            color: #fff;
-            border-color: #0056b3;
-        }
-        .pagination .page-item.disabled .page-link {
-            background: #f9f9f9;
-            color: #6c757d;
-            border-color: #999;
-        }
-        .pagination-label {
-            color: #333;
-            font-size: 1rem;
-            margin-top: 1.5rem;
-            text-align: center;
-        }
-        @media (max-width: 768px) {
-            .dashboard-container {
-                width: calc(100% - 2rem);
-                margin: 1rem auto;
-                padding: 0 1rem;
-            }
-            .dashboard-title {
-                font-size: 2rem;
-            }
-            .card-header {
-                font-size: 1.1rem;
-            }
-            .table {
-                font-size: 0.9rem;
-            }
-            .nav-tabs .nav-link {
-                font-size: 0.9rem;
-                padding: 0.4rem 0.8rem;
-            }
-            .character-grid {
-                grid-template-columns: 1fr;
-            }
-            .pagination .page-link {
-                padding: 0.3rem 0.5rem;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
 </head>
 <body class="users">
     <div class="wrapper">
-        <?php include dirname(__DIR__) . '../../includes/header.php'; ?>
+        <?php include $project_root . 'includes/header.php'; ?>
         <div class="dashboard-container">
             <div class="row">
                 <!-- Sidebar -->
-                <?php include dirname(__DIR__) . '../../includes/admin_sidebar.php'; ?>
+                <?php include $project_root . 'includes/admin_sidebar.php'; ?>
                 <!-- Main Content -->
                 <div class="col-md-9">
                     <h1 class="dashboard-title"><?php echo translate('admin_users_title', 'User Management'); ?></h1>
                     <?php echo $update_message; ?>
                     <!-- Search and Sort Form -->
-                    <form class="search-form" method="GET" action="/Sahtout/admin/users">
+                    <form class="search-form" method="GET" action="<?php echo $base_path; ?>admin/users">
                         <div class="row mb-3">
                             <div class="col-md-4">
                                 <input type="text" name="search_username" class="form-control" placeholder="<?php echo translate('admin_users_search_username_placeholder', 'Search by username'); ?>" value="<?php echo htmlspecialchars($search_username); ?>">
@@ -787,7 +491,7 @@ $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_
                                                             <td><?php echo htmlspecialchars($user['account_id']); ?></td>
                                                             <td><?php echo htmlspecialchars($user['username']); ?></td>
                                                             <td><?php echo htmlspecialchars($user['email'] ?? translate('admin_users_email_not_set', 'Not set')); ?></td>
-                                                            <td><?php echo !empty($user['avatar']) ? '<img src="/sahtout/img/accountimg/profile_pics/' . htmlspecialchars($user['avatar']) . '" class="rounded-circle" style="width: 40px; height: 40px;" alt="' . translate('admin_users_avatar_alt', 'Avatar') . '">' : '<img src="/sahtout/img/accountimg/profile_pics/user.jpg" class="rounded-circle" style="width: 40px; height: 40px;" alt="' . translate('admin_users_default_avatar_alt', 'Default Avatar') . '">'; ?></td>
+                                                            <td><?php echo !empty($user['avatar']) ? '<img src="' . $base_path . 'img/accountimg/profile_pics/' . htmlspecialchars($user['avatar']) . '" class="rounded-circle" style="width: 40px; height: 40px;" alt="' . translate('admin_users_avatar_alt', 'Avatar') . '">' : '<img src="' . $base_path . 'img/accountimg/profile_pics/user.jpg" class="rounded-circle" style="width: 40px; height: 40px;" alt="' . translate('admin_users_default_avatar_alt', 'Default Avatar') . '">'; ?></td>
                                                             <td><?php echo htmlspecialchars($user['points']); ?></td>
                                                             <td><?php echo htmlspecialchars($user['tokens']); ?></td>
                                                             <td><span class="status-<?php echo htmlspecialchars($user['role']); ?>">
@@ -807,7 +511,7 @@ $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_
                                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?php echo translate('admin_users_close_button', 'Close'); ?>"></button>
                                                                     </div>
                                                                     <div class="modal-body">
-                                                                        <form method="POST" action="/Sahtout/admin/users">
+                                                                        <form method="POST" action="<?php echo $base_path; ?>admin/users">
                                                                             <input type="hidden" name="action" value="update">
                                                                             <input type="hidden" name="account_id" value="<?php echo $user['account_id']; ?>">
                                                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -856,17 +560,17 @@ $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_
                                         <nav aria-label="<?php echo translate('admin_users_website_pagination_aria', 'Website users pagination'); ?>">
                                             <ul class="pagination">
                                                 <li class="page-item <?php echo $website_page <= 1 ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="/Sahtout/admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'website_page=' . ($website_page - 1) . '&ingame_page=' . $ingame_page; ?>" aria-label="<?php echo translate('admin_users_previous', 'Previous'); ?>">
+                                                    <a class="page-link" href="<?php echo $base_path; ?>admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'website_page=' . ($website_page - 1) . '&ingame_page=' . $ingame_page; ?>" aria-label="<?php echo translate('admin_users_previous', 'Previous'); ?>">
                                                         <span aria-hidden="true">&laquo;</span>
                                                     </a>
                                                 </li>
                                                 <?php for ($i = 1; $i <= $total_website_pages; $i++): ?>
                                                     <li class="page-item <?php echo $i === $website_page ? 'active' : ''; ?>">
-                                                        <a class="page-link" href="/Sahtout/admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'website_page=' . $i . '&ingame_page=' . $ingame_page; ?>"><?php echo $i; ?></a>
+                                                        <a class="page-link" href="<?php echo $base_path; ?>admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'website_page=' . $i . '&ingame_page=' . $ingame_page; ?>"><?php echo $i; ?></a>
                                                     </li>
                                                 <?php endfor; ?>
                                                 <li class="page-item <?php echo $website_page >= $total_website_pages ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="/Sahtout/admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'website_page=' . ($website_page + 1) . '&ingame_page=' . $ingame_page; ?>" aria-label="<?php echo translate('admin_users_next', 'Next'); ?>">
+                                                    <a class="page-link" href="<?php echo $base_path; ?>admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'website_page=' . ($website_page + 1) . '&ingame_page=' . $ingame_page; ?>" aria-label="<?php echo translate('admin_users_next', 'Next'); ?>">
                                                         <span aria-hidden="true">&raquo;</span>
                                                     </a>
                                                 </li>
@@ -947,7 +651,7 @@ $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_
                                                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?php echo translate('admin_users_close_button', 'Close'); ?>"></button>
                                                                     </div>
                                                                     <div class="modal-body">
-                                                                        <form method="POST" action="/Sahtout/admin/users">
+                                                                        <form method="POST" action="<?php echo $base_path; ?>admin/users">
                                                                             <input type="hidden" name="action" value="manage_account">
                                                                             <input type="hidden" name="account_id" value="<?php echo $account['id']; ?>">
                                                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -1008,17 +712,17 @@ $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_
                                         <nav aria-label="<?php echo translate('admin_users_ingame_pagination_aria', 'In-game accounts pagination'); ?>">
                                             <ul class="pagination">
                                                 <li class="page-item <?php echo $ingame_page <= 1 ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="/Sahtout/admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'ingame_page=' . ($ingame_page - 1) . '&website_page=' . $website_page; ?>" aria-label="<?php echo translate('admin_users_previous', 'Previous'); ?>">
+                                                    <a class="page-link" href="<?php echo $base_path; ?>admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'ingame_page=' . ($ingame_page - 1) . '&website_page=' . $website_page; ?>" aria-label="<?php echo translate('admin_users_previous', 'Previous'); ?>">
                                                         <span aria-hidden="true">&laquo;</span>
                                                     </a>
                                                 </li>
                                                 <?php for ($i = 1; $i <= $total_ingame_pages; $i++): ?>
                                                     <li class="page-item <?php echo $i === $ingame_page ? 'active' : ''; ?>">
-                                                        <a class="page-link" href="/Sahtout/admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'ingame_page=' . $i . '&website_page=' . $website_page; ?>"><?php echo $i; ?></a>
+                                                        <a class="page-link" href="<?php echo $base_path; ?>admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'ingame_page=' . $i . '&website_page=' . $website_page; ?>"><?php echo $i; ?></a>
                                                     </li>
                                                 <?php endfor; ?>
                                                 <li class="page-item <?php echo $ingame_page >= $total_ingame_pages ? 'disabled' : ''; ?>">
-                                                    <a class="page-link" href="/Sahtout/admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'ingame_page=' . ($ingame_page + 1) . '&website_page=' . $website_page; ?>" aria-label="<?php echo translate('admin_users_next', 'Next'); ?>">
+                                                    <a class="page-link" href="<?php echo $base_path; ?>admin/users?<?php echo ($search_username ? 'search_username=' . urlencode($search_username) . '&' : '') . ($search_email ? 'search_email=' . urlencode($search_email) . '&' : '') . ($role_filter ? 'role_filter=' . urlencode($role_filter) . '&' : '') . ($ban_filter ? 'ban_filter=' . urlencode($ban_filter) . '&' : '') . ($gmlevel_filter ? 'gmlevel_filter=' . urlencode($gmlevel_filter) . '&' : '') . ($sort_id ? 'sort_id=' . urlencode($sort_id) . '&' : '') . 'ingame_page=' . ($ingame_page + 1) . '&website_page=' . $website_page; ?>" aria-label="<?php echo translate('admin_users_next', 'Next'); ?>">
                                                         <span aria-hidden="true">&raquo;</span>
                                                     </a>
                                                 </li>
@@ -1032,42 +736,13 @@ $active_tab = (isset($_GET['ingame_page']) && $_GET['ingame_page'] > 1) || $ban_
                 </div>
             </div>
         </div>
-        <?php include dirname(__DIR__) . '../../includes/footer.php'; ?>
+        <?php include $project_root . 'includes/footer.php'; ?>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // JavaScript to keep In-Game tab active when pagination or filters are used
-        document.querySelectorAll('#ingame-tab .pagination a.page-link, #ingame-tab form.search-form').forEach(element => {
-            element.addEventListener('click', function(event) {
-                document.querySelector('.nav-tabs .nav-link[href="#website-tab"]').classList.remove('active');
-                document.querySelector('#website-tab').classList.remove('show', 'active');
-                document.querySelector('.nav-tabs .nav-link[href="#ingame-tab"]').classList.add('active');
-                document.querySelector('#ingame-tab').classList.add('show', 'active');
-            });
-        });
-
-        // JavaScript to show/hide ban fields or GM level fields based on ban_action selection
-        document.querySelectorAll('select[name="ban_action"]').forEach(select => {
-            select.addEventListener('change', function() {
-                const modalId = this.id.split('-')[1];
-                const banFields = document.getElementById('banFields-' + modalId);
-                const gmFields = document.getElementById('gmFields-' + modalId);
-                if (this.value === 'ban') {
-                    banFields.style.display = 'block';
-                    gmFields.style.display = 'none';
-                } else if (this.value === 'unban') {
-                    banFields.style.display = 'none';
-                    gmFields.style.display = 'none';
-                } else {
-                    banFields.style.display = 'none';
-                    gmFields.style.display = 'block';
-                }
-            });
-        });
-    </script>
+    <script src="<?php echo $base_path; ?>assets/js/pages/admin/users.js"></script>
 </body>
 </html>
-<?php 
+<?php
 $site_db->close();
 $auth_db->close();
 $char_db->close();

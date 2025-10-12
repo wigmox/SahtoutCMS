@@ -1,11 +1,12 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once __DIR__ . '/../includes/session.php';
-require_once __DIR__ . '/../includes/item_tooltip.php';
-require_once __DIR__ . '/../languages/language.php';
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/item_tooltip.php';
+require_once $project_root . 'languages/language.php';
 
 $page_class = 'shop';
-include_once __DIR__ . '/../includes/header.php';
+include_once $project_root . 'includes/header.php';
 
 $selected_category = isset($_GET['category']) ? $_GET['category'] : 'All';
 $valid_categories = ['All', 'Service', 'Mount', 'Pet', 'Gold', 'Stuff'];
@@ -123,7 +124,7 @@ if (!empty($_SESSION['user_id']) && isset($_SESSION['last_purchase_time'])) {
     <meta name="description" content="<?php echo translate('shop_meta_description', 'Browse and purchase items, mounts, pets, gold, and services for Sahtout WoW Server'); ?>">
     <title><?php echo translate('shop_page_title', 'Sahtout Server Shop'); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/Sahtout/assets/css/footer.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/footer.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body class="shop">
@@ -356,13 +357,16 @@ if (!empty($_SESSION['user_id']) && isset($_SESSION['last_purchase_time'])) {
 
     <style>
     body {
-        background: url('/sahtout/img/backgrounds/bg-shop.jpg') no-repeat center center fixed;
+        background: url('<?php echo $base_path; ?>img/backgrounds/bg-shop.jpg') no-repeat center center fixed;
         background-size: cover;
     }
-    .shop-container {
+   .shop-container {
         max-width: 1200px;
         margin: 2rem auto;
         padding: 0 1rem;
+        min-height: calc(100vh - 150px); /* Adjust 150px based on header/footer height */
+        display: flex;
+        flex-direction: column;
     }
     .shop-container h1 {
         text-align: center;
@@ -498,13 +502,18 @@ if (!empty($_SESSION['user_id']) && isset($_SESSION['last_purchase_time'])) {
         width: 200%;
         height: 200%;
     }
-    .no-items {
+     .no-items {
         text-align: center;
         color: #fff;
         font-size: 1.2rem;
         padding: 1rem;
         background: rgba(0, 0, 0, 0.8);
         border-radius: 8px;
+        flex-grow: 1; /* Ensure no-items expands to push footer */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 200px; /* Minimum height for visibility */
     }
     .status {
         text-align: center;
@@ -695,7 +704,7 @@ if (!empty($_SESSION['user_id']) && isset($_SESSION['last_purchase_time'])) {
     }
     </style>
 
-    <?php include_once __DIR__ . '/../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>
 <?php 

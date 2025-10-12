@@ -1,17 +1,17 @@
 <?php
 define('ALLOWED_ACCESS', true);
-// Include session, language, and config
-require_once __DIR__ . '/../../includes/session.php'; // Includes config.php
-require_once __DIR__ . '/../../languages/language.php'; // Include translation system
+// Include paths.php for $project_root and $base_path
+require_once __DIR__ . '/../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
 
 // Check if user is admin or moderator
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
-$page_class = 'anews'; // Set page class for sidebar highlighting
-// Use site_db from config.php
+$page_class = 'anews';
 global $site_db;
 
 // Get current username for posted_by
@@ -23,7 +23,7 @@ if (!isset($_SESSION['csrf_token'])) {
 }
 
 // Directory for image uploads
-$base_upload_dir = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'newsimg' . DIRECTORY_SEPARATOR;
+$base_upload_dir = $project_root . 'img/newsimg/';
 $base_upload_url = 'img/newsimg/';
 $default_image_url = 'img/newsimg/news.png';
 
@@ -32,23 +32,23 @@ if (!file_exists($base_upload_dir)) {
     mkdir($base_upload_dir, 0755, true);
 }
 if (!is_writable($base_upload_dir)) {
-    error_log("Directory not writable: $base_upload_dir", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+    error_log("Directory not writable: $base_upload_dir", 3, $project_root . 'logs/upload_errors.log');
 }
 
 // Check if default image exists
 $default_image_path = $base_upload_dir . 'news.png';
 if (!file_exists($default_image_path)) {
-    error_log("Default image missing: $default_image_path", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+    error_log("Default image missing: $default_image_path", 3, $project_root . 'logs/upload_errors.log');
 }
 
 // Directory for logs
-$log_dir = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR;
+$log_dir = $project_root . 'logs/';
 $log_file = $log_dir . 'upload_errors.log';
 if (!file_exists($log_dir)) {
     mkdir($log_dir, 0755, true);
 }
 if (!is_writable($log_dir)) {
-    error_log("Log directory not writable: $log_dir");
+    error_log("Log directory not writable: $log_dir", 3, $log_file);
 }
 
 // Handle form submissions
@@ -270,238 +270,19 @@ $news_result = $stmt->get_result();
     <meta name="robots" content="noindex">
     <title><?php echo translate('admin_news_page_title', 'News Management'); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/Sahtout/assets/css/footer.css">
+        <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/anews.css">
+        <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/footer.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        .account-sahtout-icon {
-            width: 24px;
-            height: 24px;
-            vertical-align: middle;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-        }
-        .alert {
-            margin-bottom: 1rem;
-        }
-        .search-form {
-            margin-bottom: 1.5rem;
-        }
-        .pagination {
-            justify-content: center;
-            margin-top: 1.5rem;
-        }
-        .dashboard-container {
-            flex-grow: 1;
-        }
-        html, body {
-            height: 100%;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-        }
-        body {
-            background-color: #ffffff;
-            color: #000;
-            font-family: Arial, sans-serif;
-        }
-        .wrapper {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .dashboard-title {
-            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-            font-size: 2.5rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-        .card {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .card-header {
-            background: rgba(230, 230, 230, 0.9);
-            border-bottom: 1px solid #ccc;
-            color: #333;
-            font-size: 1.25rem;
-            padding: 0.75rem 1rem;
-        }
-        .card-body {
-            padding: 1rem;
-        }
-        .table {
-            color: #333;
-            background: none;
-            width: 100%;
-        }
-        .table th, .table td {
-            border: 1px solid #ccc;
-            padding: 0.5rem;
-            transition: all 0.3s ease;
-        }
-        .table th {
-            background: rgba(240, 240, 240, 0.9);
-            color: #000;
-        }
-        .table .btn {
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            margin-right: 0.5rem;
-        }
-        .table .btn-edit {
-            background: #007bff;
-            border: 2px solid #0056b3;
-            color: #fff;
-        }
-        .table .btn-edit:hover {
-            background: #0056b3;
-            border-color: #003087;
-        }
-        .table .btn-delete {
-            background: #dc3545;
-            border: 2px solid #a71d2a;
-            color: #fff;
-        }
-        .table .btn-delete:hover {
-            background: #a71d2a;
-            border-color: #721c24;
-        }
-        .form-control, .form-select {
-            background: #f9f9f9;
-            color: #333;
-            border: 1px solid #999;
-        }
-        .form-control:focus, .form-select:focus {
-            background: #fff;
-            color: #000;
-            border-color: #666;
-            box-shadow: none;
-        }
-        .form-control::placeholder {
-            color: #666;
-            font-weight: bold;
-            opacity: 1;
-        }
-        .modal-content {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #ccc;
-            border-radius: 8px;
-        }
-        .modal-header, .modal-footer {
-            border-color: #ccc;
-        }
-        .modal-title {
-            color: #333;
-        }
-        .btn-close {
-            background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23333'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707A1 1 0 01.293.293z'/%3e%3c/svg%3e") center/1em auto no-repeat;
-        }
-        .status-important {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .news-title-link {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .news-title-link:hover {
-            color: #0056b3;
-            text-decoration: underline;
-        }
-        .table tbody tr:hover {
-            background: rgba(200, 200, 200, 0.2);
-            cursor: pointer;
-        }
-        .table tbody tr:hover td {
-            color: #000;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .table tbody tr:hover .news-title-link {
-            color: #003087;
-            text-decoration: underline;
-        }
-        .table tbody tr:hover .status-important {
-            color: #a71d2a;
-        }
-        .form-check {
-            padding-left: 2rem;
-            margin-bottom: 0.5rem;
-        }
-        .form-check-input {
-            width: 1.25rem;
-            height: 1.25rem;
-            margin-top: 0.25rem;
-            background-color: #f9f9f9;
-            border: 1px solid #999;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .form-check-input:focus {
-            border-color: #666;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-            outline: none;
-        }
-        .form-check-input:checked {
-            background-color: #007bff;
-            border-color: #0056b3;
-            transform: scale(1.1);
-        }
-        .form-check-input:hover {
-            border-color: #666;
-            background-color: #e9ecef;
-        }
-        .form-check-label {
-            color: #333;
-            font-size: 1rem;
-            margin-left: 0.5rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .form-check-label:hover {
-            color: #000;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .image-preview {
-            max-width: 100px;
-            max-height: 100px;
-            margin-top: 0.5rem;
-            display: none;
-        }
-        .image-preview.active {
-            display: block;
-        }
-        @media (max-width: 768px) {
-            .dashboard-container {
-                width: calc(100% - 2rem);
-                margin: 1rem auto;
-                padding: 0 1rem;
-            }
-            .dashboard-title {
-                font-size: 2rem;
-            }
-            .card-header {
-                font-size: 1.1rem;
-            }
-            .table {
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+    
 </head>
 <body class="news">
     <div class="wrapper">
-        <?php include dirname(__DIR__) . '../../includes/header.php'; ?>
+        <?php include $project_root . 'includes/header.php'; ?>
         <div class="dashboard-container">
             <div class="row">
                 <!-- Sidebar -->
-                <?php include dirname(__DIR__) . '../../includes/admin_sidebar.php'; ?>
+                <?php include $project_root . 'includes/admin_sidebar.php'; ?>
                 <!-- Main Content -->
                 <div class="col-md-9">
                     <h1 class="dashboard-title"><?php echo translate('admin_news_title', 'News Management'); ?></h1>
@@ -575,7 +356,7 @@ $news_result = $stmt->get_result();
                                         <?php else: ?>
                                             <?php while ($news = $news_result->fetch_assoc()): ?>
                                                 <tr id="news-<?php echo $news['id']; ?>">
-                                                    <td><a href="/Sahtout/news?slug=<?php echo urlencode(htmlspecialchars($news['slug'])); ?>" class="news-title-link"><?php echo htmlspecialchars($news['title']); ?></a></td>
+                                                    <td><a href="<?php echo $base_path; ?>news?slug=<?php echo urlencode(htmlspecialchars($news['slug'])); ?>" class="news-title-link"><?php echo htmlspecialchars($news['title']); ?></a></td>
                                                     <td><?php echo translate('admin_news_category_' . $news['category'], ucfirst($news['category'])); ?></td>
                                                     <td><?php echo htmlspecialchars($news['posted_by']); ?></td>
                                                     <td><?php echo date('M j, Y H:i', strtotime($news['post_date'])); ?></td>
@@ -680,17 +461,17 @@ $news_result = $stmt->get_result();
                                 <nav aria-label="<?php echo translate('admin_news_pagination_aria', 'News pagination'); ?>">
                                     <ul class="pagination">
                                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="admin/anews?page=<?php echo $page - 1; ?>" aria-label="<?php echo translate('admin_news_previous', 'Previous'); ?>">
+                                            <a class="page-link" href="<?php echo $base_path; ?>admin/anews?page=<?php echo $page - 1; ?>" aria-label="<?php echo translate('admin_news_previous', 'Previous'); ?>">
                                                 <span aria-hidden="true">&laquo;</span>
                                             </a>
                                         </li>
                                         <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                                             <li class="page-item <?php echo $page === $i ? 'active' : ''; ?>">
-                                                <a class="page-link" href="admin/anews?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                                <a class="page-link" href="<?php echo $base_path; ?>admin/anews?page=<?php echo $i; ?>"><?php echo $i; ?></a>
                                             </li>
                                         <?php endfor; ?>
                                         <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="admin/anews?page=<?php echo $page + 1; ?>" aria-label="<?php echo translate('admin_news_next', 'Next'); ?>">
+                                            <a class="page-link" href="<?php echo $base_path; ?>admin/anews?page=<?php echo $page + 1; ?>" aria-label="<?php echo translate('admin_news_next', 'Next'); ?>">
                                                 <span aria-hidden="true">&raquo;</span>
                                             </a>
                                         </li>
@@ -702,7 +483,7 @@ $news_result = $stmt->get_result();
                 </div>
             </div>
         </div>
-        <?php include dirname(__DIR__) . '../../includes/footer.php'; ?>
+        <?php include $project_root . 'includes/footer.php'; ?>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>

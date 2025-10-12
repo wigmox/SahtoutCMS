@@ -1,9 +1,11 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../../includes/session.php';
-$page_class = "armory";
-require_once '../../includes/header.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../includes/paths.php';
 
+// Use $project_root for filesystem includes
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/header.php';
 
 // Query top 50 characters sorted by level and PvP kills, including guild name
 $sql = "
@@ -35,15 +37,17 @@ while ($row = $result->fetch_assoc()) {
 // Faction from race
 function getFaction($race) {
     $alliance = [1, 3, 4, 7, 11, 22, 25, 29];
-    return in_array($race, $alliance) ? translate('solo_pvp_faction_alliance', 'Alliance') : translate('solo_pvp_faction_horde', 'Horde');
+    return in_array($race, $alliance) ? 'Alliance' : 'Horde';
 }
 
 // Image paths
 function factionIcon($race) {
+    global $base_path;
     $faction = getFaction($race);
-    return "/Sahtout/img/accountimg/faction/" . strtolower(translate('solo_pvp_faction_alliance', 'Alliance') == $faction ? 'alliance' : 'horde') . ".png";
+    return $base_path . "img/accountimg/faction/" . strtolower($faction) . ".png";
 }
 function raceIcon($race, $gender) {
+    global $base_path;
     $genderFolder = ($gender == 0) ? 'male' : 'female';
     $raceMap = [
         1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
@@ -53,16 +57,17 @@ function raceIcon($race, $gender) {
         29 => 'voidelf'
     ];
     $raceName = isset($raceMap[$race]) ? $raceMap[$race] : 'unknown';
-    return "/Sahtout/img/accountimg/race/{$genderFolder}/{$raceName}.png";
+    return $base_path . "img/accountimg/race/{$genderFolder}/{$raceName}.png";
 }
 function classIcon($class) {
+    global $base_path;
     $classMap = [
         1 => 'warrior', 2 => 'paladin', 3 => 'hunter', 4 => 'rogue',
         5 => 'priest', 6 => 'deathknight', 7 => 'shaman', 8 => 'mage',
         9 => 'warlock', 10 => 'monk', 11 => 'druid', 12 => 'demonhunter'
     ];
     $className = isset($classMap[$class]) ? $classMap[$class] : 'unknown';
-    return "/Sahtout/img/accountimg/class/{$className}.webp";
+    return $base_path . "img/accountimg/class/{$className}.webp";
 }
 ?>
 
@@ -82,75 +87,21 @@ function classIcon($class) {
             }
         }
     </script>
-    <style>
-        .arena-content {
-            min-height: calc(100vh - 200px); /* Adjust based on header/footer height */
-        }
-
-        .arena-content .table-container {
-            scrollbar-width: thin;
-            scrollbar-color: #ffcc00 #1f2937;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .arena-content .table-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .arena-content .table-container::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-
-        .arena-content .table-container::-webkit-scrollbar-thumb {
-            background: #ffcc00;
-            border-radius: 4px;
-        }
-
-        .arena-content tr {
-            cursor: pointer;
-        }
-
-        .arena-content .top5 {
-            background: linear-gradient(to right, #161616, #043a9e) !important;
-        }
-
-        .arena-content .top5:hover {
-            background: linear-gradient(to right, #5807db, #0609c79c) !important;
-            cursor: url('/Sahtout/img/hover_wow.gif') 16 16, auto;
-        }
-
-        .arena-content tr:not(.top5):hover {
-            background-color: #10369e; /* Custom blue for hover */
-            transition: background-color 0.2s ease-in-out;
-        }
-
-        .arena-content tr.top5:hover {
-            filter: brightness(1.2);
-            transition: filter 0.2s ease-in-out;
-        }
-
-        .arena-content a {
-            color: #ffffff;
-            text-decoration: none;
-        }
-
-        .arena-content a:hover {
-            text-decoration: underline;
-        }
-
-        /* Scope nav-container override to arena-nav-wrapper */
-        .arena-nav-wrapper .nav-container {
-            border: 2px double #4338ca;
-            margin-top: 20px;
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/armory/solo_pvp.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/armory/arenanavbar.css">
+</head>
+<style>
+       :root{
+            --bg-armory:url('<?php echo $base_path; ?>img/backgrounds/bg-armory.jpg');
+            --hover-wow-gif: url('<?php echo $base_path; ?>img/hover_wow.gif');
         }
     </style>
-</head>
 <body class="<?php echo $page_class; ?>">
     <div class="arena-content tw-bg-900 tw-text-white">
         <div class="tw-container tw-mx-auto tw-px-4 tw-py-8">
             <h1 class="tw-text-4xl tw-font-bold tw-text-center tw-text-amber-400 tw-mb-6"><?php echo translate('solo_pvp_title', 'Top 50 Players'); ?></h1>
 
-            <?php include_once '../../includes/arenanavbar.php'; ?>
+            <?php include_once $project_root . 'includes/arenanavbar.php'; ?>
 
             <div class="table-container tw-overflow-x-auto tw-rounded-lg tw-shadow-lg">
                 <table class="tw-w-full tw-text-sm tw-text-center tw-bg-gray-800">
@@ -177,9 +128,9 @@ function classIcon($class) {
                             $playerCount = count($players);
                             foreach ($players as $p) {
                                 $rowClass = ($rank <= 5 && $playerCount >= 5) ? 'top5' : '';
-                                echo "<tr class='{$rowClass} tw-transition tw-duration-200' onclick=\"window.location='/sahtout/character?guid={$p['guid']}';\"'>
+                                echo "<tr class='{$rowClass} tw-transition tw-duration-200' onclick=\"window.location='{$base_path}character?guid={$p['guid']}';\">
                                     <td class='tw-py-3 tw-px-6'>{$rank}</td>
-                                    <td class='tw-py-3 tw-px-6'><a href='/sahtout/character?guid={$p['guid']}' class='tw-text-white tw-no-underline hover:tw-underline'>" . htmlspecialchars($p['name']) . "</a></td>
+                                    <td class='tw-py-3 tw-px-6'><a href='{$base_path}character?guid={$p['guid']}' class='tw-text-white tw-no-underline hover:tw-underline'>" . htmlspecialchars($p['name']) . "</a></td>
                                     <td class='tw-py-3 tw-px-6'>" . htmlspecialchars($p['guild_name']) . "</td>
                                     <td class='tw-py-3 tw-px-6'>
                                         <img src='" . factionIcon($p['race']) . "' alt='" . translate('solo_pvp_faction_alt', 'Faction') . "' class='tw-inline-block tw-w-6 tw-h-6 tw-rounded'>
@@ -202,6 +153,6 @@ function classIcon($class) {
             </div>
         </div>
     </div>
-    <?php include_once '../../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

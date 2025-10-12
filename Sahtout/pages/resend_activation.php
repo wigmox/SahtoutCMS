@@ -1,15 +1,23 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../includes/session.php';
-require_once '../includes/config.mail.php';
-require_once '../includes/config.cap.php'; // reCAPTCHA keys
-require_once '../languages/language.php'; // Add for translate()
+
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../includes/paths.php';
+
+// Use $project_root for filesystem includes
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/config.mail.php';
+require_once $project_root . 'includes/config.cap.php'; // reCAPTCHA keys
+require_once $project_root . 'languages/language.php'; // Add for translate()
 $page_class = 'resend_activation'; // Underscore for URL consistency
-require_once '../includes/header.php';
+require_once $project_root . 'includes/header.php';
+
+
 if (isset($_SESSION['user_id'])) {
-    header("Location: /sahtout/account");
+    header("Location: {$base_path}account");
     exit();
 }
+
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -66,10 +74,7 @@ function updateToken($db, $username, $email, $new_token) {
 }
 
 function sendActivationEmail($username, $email, $token) {
-    global $errors, $success;
-
-    // Determine protocol dynamically
-    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+    global $errors, $success, $base_path;
 
     try {
         $mail = getMailer();
@@ -77,7 +82,7 @@ function sendActivationEmail($username, $email, $token) {
         $mail->AddEmbeddedImage('logo.png', 'logo_cid');
         $mail->Subject = translate('email_subject', '[RESEND] Activate Your Account');
 
-        $activation_link = $protocol . $_SERVER['HTTP_HOST'] . "/sahtout/activate?token=$token";
+        $activation_link = $base_path . "activate?token=$token";
 
         $mail->Body = "<h2>" . str_replace('{username}', htmlspecialchars($username), translate('email_greeting', 'Welcome, {username}!')) . "</h2>
             <img src='cid:logo_cid' alt='Sahtout logo'>
@@ -86,7 +91,7 @@ function sendActivationEmail($username, $email, $token) {
             <p>" . translate('email_ignore', 'If you didn\'t request this, please ignore this email.') . "</p>";
 
         if ($mail->send()) {
-            $success = "Activation email sent successfully to $email";
+            $success = translate('success_email_sent', 'Activation email sent successfully to %s', htmlspecialchars($email));
         } else {
             $errors[] = translate('error_email_failed', 'Failed to send email: ') . $mail->ErrorInfo;
         }
@@ -104,158 +109,8 @@ function sendActivationEmail($username, $email, $token) {
     <meta name="description" content="<?php echo translate('meta_description', 'Resend the activation email for your World of Warcraft server account.'); ?>">
     <title><?php echo translate('page_title', 'Resend Activation Email'); ?></title>
     <style>
-        body.resend_activation {
-            color: #fff;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: url('/sahtout/img/backgrounds/bg-resend.jpg') no-repeat center center fixed;
-            background-size: cover;
-            font-family: 'UnifrakturCook', 'Arial', sans-serif;
-            position: relative;
-        }
-        html, body {
-            width: 100%;
-            overflow-x: hidden;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .wrapper {
-            width: 100%;
-            padding: 2rem 1rem;
-            display: flex;
-            justify-content: center;
-            flex: 1 0 auto;
-        }
-        .form-container {
-            max-width: 500px;
-            width: calc(100% - 2rem);
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #ffd700;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-            padding: 2.5rem;
-        }
-        .form-section {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .form-section h2 {
-            font-size: 2.8rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            color: #ffd700;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            margin-bottom: 1.2rem;
-            text-align: center;
-        }
-        .form-section form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.2rem;
-        }
-        .form-section input {
-            width: 100%;
-            padding: 1rem;
-            font-size: 1.1rem;
-            font-family: 'Arial', sans-serif;
-            background: #333;
-            color: #fff;
-            border: 1px solid #ffd700;
-            border-radius: 4px;
-            outline: none;
-            transition: border-color 0.3s ease;
-        }
-        .form-section input:focus {
-            border-color: #ffe600;
-            box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-        }
-        .form-section input::placeholder {
-            color: #ccc;
-        }
-        .form-section button {
-            background: #333;
-            color: #ffd700;
-            border: 2px solid #ffd700;
-            padding: 1rem 2rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            font-size: 1.2rem;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .form-section button:hover {
-            background: #ffd700;
-            color: #000;
-            transform: scale(1.05);
-        }
-        .form-section .error {
-            color: #ff0000;
-            font-size: 1.1rem;
-            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-            text-align: center;
-            margin: 0.5rem 0 0;
-        }
-        .form-section .success {
-            color: #00ff00;
-            font-size: 1.1rem;
-            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-            text-align: center;
-            margin: 0.5rem 0 0;
-        }
-        .form-section .login-link {
-            text-align: center;
-            font-size: 1.1rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            color: #fff;
-            margin-top: 1.5rem;
-        }
-        .form-section .login-link a {
-            color: #ffd700;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .form-section .login-link a:hover {
-            color: #ffe600;
-            text-decoration: underline;
-        }
-        footer {
-            flex-shrink: 0;
-            width: 100%;
-            text-align: center;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.7);
-            border-top: 2px solid #ffd700;
-            color: #fff;
-            font-family: 'Arial', sans-serif;
-            font-size: 0.9rem;
-        }
-        @media (max-width: 767px) {
-            .wrapper {
-                padding: 1.5rem 0.5rem;
-            }
-            .form-container {
-                max-width: 90%;
-                padding: 1.5rem;
-            }
-            .form-section h2 {
-                font-size: 2.2rem;
-            }
-            .form-section input {
-                font-size: 1rem;
-                padding: 0.8rem;
-            }
-            .form-section button {
-                font-size: 1.1rem;
-                padding: 0.8rem 1.5rem;
-            }
-            .form-section .login-link {
-                font-size: 1rem;
-                margin-top: 1rem;
-            }
+        :root{
+            --bg-resend-act:url('<?php echo $base_path; ?>img/backgrounds/bg-register.jpg');
         }
     </style>
 </head>
@@ -284,7 +139,7 @@ function sendActivationEmail($username, $email, $token) {
                     <?php endif; ?>
                     <button type="submit"><?php echo translate('resend_button', 'Resend Activation Email'); ?></button>
                     <div class="login-link">
-                        <?php echo translate('login_link', 'Already activated?'); ?> <a href="/sahtout/login"><?php echo translate('login_link_text', 'Log in here'); ?></a>
+                        <?php echo translate('login_link', 'Already activated?'); ?> <?php echo sprintf(translate('login_link_text', '<a href="%s">Log in here</a>'), htmlspecialchars($base_path . 'login')); ?>
                     </div>
                 </form>
             </div>
@@ -293,6 +148,6 @@ function sendActivationEmail($username, $email, $token) {
     <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
         <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <?php endif; ?>
-    <?php include_once '../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

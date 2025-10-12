@@ -1,14 +1,20 @@
 <?php
 define('ALLOWED_ACCESS', true);
-// Include session, language, and config
-require_once __DIR__ . '/../../includes/session.php'; // Includes config.php
-require_once __DIR__ . '/../../languages/language.php'; // Include translation system
+
+// Include session, language, and paths
+require_once __DIR__ . '/../../includes/paths.php';
+require_once $project_root . 'includes/session.php'; // Includes config.php
+require_once $project_root . 'languages/language.php'; // Include translation system
 
 $page_class = 'characters';
 
+define('DB_AUTH', $db_auth);
+define('DB_CHAR', $db_char);
+define('DB_WORLD', $db_world);
+define('DB_SITE', $db_site);
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
@@ -17,7 +23,7 @@ global $site_db, $auth_db, $char_db;
 
 // Check user role from user_currencies
 $user_id = $_SESSION['user_id'];
-$role_query = "SELECT role FROM user_currencies WHERE account_id = ?";
+$role_query = "SELECT role FROM " . DB_SITE . ".user_currencies WHERE account_id = ?";
 $stmt = $site_db->prepare($role_query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -33,7 +39,7 @@ $stmt->close();
 
 // Restrict access to admin or moderator only
 if (!in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
@@ -123,8 +129,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $char_action = $_POST['char_action'] ?? '';
         $success = false;
 
-        // Fetch character name for feedback
-        $stmt = $char_db->prepare("SELECT name, online FROM characters WHERE guid = ?");
+        // Fetch character name and online status for feedback
+        $stmt = $char_db->prepare("SELECT name, online FROM " . DB_CHAR . ".characters WHERE guid = ?");
         $stmt->bind_param("i", $guid);
         $stmt->execute();
         $char = $stmt->get_result()->fetch_assoc();
@@ -140,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $gold = isset($_POST['gold']) ? (int)$_POST['gold'] : 0;
                     if ($gold >= 0) {
                         $gold_in_copper = $gold * 10000; // Convert gold to copper
-                        $stmt = $char_db->prepare("UPDATE characters SET money = money + ? WHERE guid = ?");
+                        $stmt = $char_db->prepare("UPDATE " . DB_CHAR . ".characters SET money = money + ? WHERE guid = ?");
                         $stmt->bind_param("ii", $gold_in_copper, $guid);
                         if ($stmt->execute()) {
                             $success = true;
@@ -156,56 +162,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_gold_online', 'Cannot add gold to %s: Character is online.'), htmlspecialchars($char_name)) . '</div>';
                 }
             } elseif ($char_action === 'change_level') {
-                $level = isset($_POST['level']) ? (int)$_POST['level'] : 0;
-                if ($level >= 1 && $level <= 255) {
-                    $stmt = $char_db->prepare("UPDATE characters SET level = ? WHERE guid = ?");
-                    $stmt->bind_param("ii", $level, $guid);
-                    if ($stmt->execute()) {
-                        $success = true;
-                        $update_message = '<div class="alert alert-success">' . sprintf(translate('admin_chars_level_success', 'Level changed to %d for %s successfully.'), $level, htmlspecialchars($char_name)) . '</div>';
+                if ($char['online'] == 0) {
+                    $level = isset($_POST['level']) ? (int)$_POST['level'] : 0;
+                    if ($level >= 1 && $level <= 255) {
+                        $stmt = $char_db->prepare("UPDATE " . DB_CHAR . ".characters SET level = ? WHERE guid = ?");
+                        $stmt->bind_param("ii", $level, $guid);
+                        if ($stmt->execute()) {
+                            $success = true;
+                            $update_message = '<div class="alert alert-success">' . sprintf(translate('admin_chars_level_success', 'Level changed to %d for %s successfully.'), $level, htmlspecialchars($char_name)) . '</div>';
+                        } else {
+                            $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_level_failed', 'Failed to change level for %s.'), htmlspecialchars($char_name)) . '</div>';
+                        }
+                        $stmt->close();
                     } else {
-                        $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_level_failed', 'Failed to change level for %s.'), htmlspecialchars($char_name)) . '</div>';
+                        $update_message = '<div class="alert alert-danger">' . translate('admin_chars_level_invalid', 'Level must be between 1 and 255.') . '</div>';
                     }
-                    $stmt->close();
                 } else {
-                    $update_message = '<div class="alert alert-danger">' . translate('admin_chars_level_invalid', 'Level must be between 1 and 255.') . '</div>';
+                    $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_level_online', 'Cannot change level for %s: Character is online.'), htmlspecialchars($char_name)) . '</div>';
                 }
             } elseif ($char_action === 'teleport') {
-                $map = isset($_POST['map']) ? (int)$_POST['map'] : 0;
-                $x = isset($_POST['x']) ? (float)$_POST['x'] : 0;
-                $y = isset($_POST['y']) ? (float)$_POST['y'] : 0;
-                $z = isset($_POST['z']) ? (float)$_POST['z'] : 0;
-                
-                // Basic validation
-                if ($map >= 0 && $x != 0 && $y != 0) {
-                    $stmt = $char_db->prepare("UPDATE characters SET map = ?, position_x = ?, position_y = ?, position_z = ? WHERE guid = ?");
-                    $stmt->bind_param("idddi", $map, $x, $y, $z, $guid);
-                    if ($stmt->execute()) {
-                        $success = true;
-                        $map_name = isset($map_names[$map]) ? $map_names[$map] : $map;
-                        $update_message = '<div class="alert alert-success">' . sprintf(translate('admin_chars_teleport_success', 'Teleported %s to %s (%.2f, %.2f, %.2f).'), htmlspecialchars($char_name), htmlspecialchars($map_name), $x, $y, $z) . '</div>';
+                if ($char['online'] == 0) {
+                    $map = isset($_POST['map']) ? (int)$_POST['map'] : 0;
+                    $x = isset($_POST['x']) ? (float)$_POST['x'] : 0;
+                    $y = isset($_POST['y']) ? (float)$_POST['y'] : 0;
+                    $z = isset($_POST['z']) ? (float)$_POST['z'] : 0;
+                    if ($map >= 0 && $x != 0 && $y != 0) {
+                        $stmt = $char_db->prepare("UPDATE " . DB_CHAR . ".characters SET map = ?, position_x = ?, position_y = ?, position_z = ? WHERE guid = ?");
+                        $stmt->bind_param("idddi", $map, $x, $y, $z, $guid);
+                        if ($stmt->execute()) {
+                            $success = true;
+                            $map_name = isset($map_names[$map]) ? $map_names[$map] : $map;
+                            $update_message = '<div class="alert alert-success">' . sprintf(translate('admin_chars_teleport_success', 'Teleported %s to %s (%.2f, %.2f, %.2f).'), htmlspecialchars($char_name), htmlspecialchars($map_name), $x, $y, $z) . '</div>';
+                        } else {
+                            $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_teleport_failed', 'Failed to teleport %s.'), htmlspecialchars($char_name)) . '</div>';
+                        }
+                        $stmt->close();
                     } else {
-                        $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_teleport_failed', 'Failed to teleport %s.'), htmlspecialchars($char_name)) . '</div>';
+                        $update_message = '<div class="alert alert-danger">' . translate('admin_chars_teleport_invalid', 'Invalid coordinates. Map must be ≥ 0 and X/Y cannot be 0.') . '</div>';
                     }
-                    $stmt->close();
                 } else {
-                    $update_message = '<div class="alert alert-danger">' . translate('admin_chars_teleport_invalid', 'Invalid coordinates. Map must be ≥ 0 and X/Y cannot be 0.') . '</div>';
+                    $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_teleport_online', 'Cannot teleport %s: Character is online.'), htmlspecialchars($char_name)) . '</div>';
                 }
             } elseif ($char_action === 'teleport_directly') {
-                $location = $_POST['predefined_location'] ?? '';
-                if (isset($predefined_locations[$location])) {
-                    $loc = $predefined_locations[$location];
-                    $stmt = $char_db->prepare("UPDATE characters SET map = ?, position_x = ?, position_y = ?, position_z = ?, orientation = ? WHERE guid = ?");
-                    $stmt->bind_param("iddddi", $loc['map'], $loc['x'], $loc['y'], $loc['z'], $loc['o'], $guid);
-                    if ($stmt->execute()) {
-                        $success = true;
-                        $update_message = '<div class="alert alert-success">' . sprintf(translate('admin_chars_teleport_direct_success', 'Teleported %s to %s.'), htmlspecialchars($char_name), htmlspecialchars($loc['name'])) . '</div>';
+                if ($char['online'] == 0) {
+                    $location = $_POST['predefined_location'] ?? '';
+                    if (isset($predefined_locations[$location])) {
+                        $loc = $predefined_locations[$location];
+                        $stmt = $char_db->prepare("UPDATE " . DB_CHAR . ".characters SET map = ?, position_x = ?, position_y = ?, position_z = ?, orientation = ? WHERE guid = ?");
+                        $stmt->bind_param("iddddi", $loc['map'], $loc['x'], $loc['y'], $loc['z'], $loc['o'], $guid);
+                        if ($stmt->execute()) {
+                            $success = true;
+                            $update_message = '<div class="alert alert-success">' . sprintf(translate('admin_chars_teleport_direct_success', 'Teleported %s to %s.'), htmlspecialchars($char_name), htmlspecialchars($loc['name'])) . '</div>';
+                        } else {
+                            $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_teleport_failed', 'Failed to teleport %s.'), htmlspecialchars($char_name)) . '</div>';
+                        }
+                        $stmt->close();
                     } else {
-                        $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_teleport_failed', 'Failed to teleport %s.'), htmlspecialchars($char_name)) . '</div>';
+                        $update_message = '<div class="alert alert-danger">' . translate('admin_chars_location_invalid', 'Invalid location selected.') . '</div>';
                     }
-                    $stmt->close();
                 } else {
-                    $update_message = '<div class="alert alert-danger">' . translate('admin_chars_location_invalid', 'Invalid location selected.') . '</div>';
+                    $update_message = '<div class="alert alert-danger">' . sprintf(translate('admin_chars_teleport_online', 'Cannot teleport %s: Character is online.'), htmlspecialchars($char_name)) . '</div>';
                 }
             }
         }
@@ -213,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Count total characters for pagination
-$count_query = "SELECT COUNT(*) as total FROM characters c JOIN acore_auth.account a ON c.account = a.id WHERE 1=1";
+$count_query = "SELECT COUNT(*) as total FROM " . DB_CHAR . ".characters c JOIN " . DB_AUTH . ".account a ON c.account = a.id WHERE 1=1";
 $params = [];
 $types = '';
 if ($search_char_name) {
@@ -252,7 +268,7 @@ $total_pages = ceil($total_chars / $chars_per_page);
 
 // Fetch characters
 $chars_query = "SELECT c.guid, c.account, c.name, c.race, c.class, c.gender, c.level, c.map, c.online, a.username 
-                FROM characters c JOIN acore_auth.account a ON c.account = a.id WHERE 1=1";
+                FROM " . DB_CHAR . ".characters c JOIN " . DB_AUTH . ".account a ON c.account = a.id WHERE 1=1";
 $params = [];
 $types = '';
 if ($search_char_name) {
@@ -287,7 +303,7 @@ $types .= 'ii';
 $stmt = $char_db->prepare($chars_query);
 if (!$stmt) {
     $_SESSION['debug_errors'][] = translate('admin_chars_db_error', 'Failed to prepare query: ') . $char_db->error;
-    header("Location: /Sahtout/pages/login?error=database_error");
+    header("Location: {$base_path}login?error=database_error");
     exit();
 }
 if (!empty($params)) {
@@ -308,7 +324,6 @@ $map_names = [
     1 => 'Kalimdor',
     530 => 'Outland',
     571 => 'Northrend',
-    
     // Instances
     33 => 'Shadowfang Keep',
     34 => 'The Stockade',
@@ -388,6 +403,7 @@ $map_names = [
 
 // Helper functions for icons and status
 function getRaceIcon($race, $gender) {
+    global $base_path;
     $races = [
         1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
         5 => 'undead', 6 => 'tauren', 7 => 'gnome', 8 => 'troll',
@@ -396,22 +412,24 @@ function getRaceIcon($race, $gender) {
     $gender_folder = ($gender == 1) ? 'female' : 'male';
     $race_name = $races[$race] ?? 'default';
     $image = $race_name . '.png';
-    return '<img src="/sahtout/img/accountimg/race/' . $gender_folder . '/' . $image . '" alt="' . translate('admin_chars_race_icon_alt', 'Race Icon') . '" class="account-sahtout-icon">';
+    return '<img src="' . $base_path . 'img/accountimg/race/' . $gender_folder . '/' . $image . '" alt="' . translate('admin_chars_race_icon_alt', 'Race Icon') . '" class="account-sahtout-icon">';
 }
 
 function getClassIcon($class) {
+    global $base_path;
     $icons = [
         1 => 'warrior.webp', 2 => 'paladin.webp', 3 => 'hunter.webp', 4 => 'rogue.webp',
         5 => 'priest.webp', 6 => 'deathknight.webp', 7 => 'shaman.webp', 8 => 'mage.webp',
         9 => 'warlock.webp', 11 => 'druid.webp'
     ];
-    return '<img src="/sahtout/img/accountimg/class/' . ($icons[$class] ?? 'default.jpg') . '" alt="' . translate('admin_chars_class_icon_alt', 'Class Icon') . '" class="account-sahtout-icon">';
+    return '<img src="' . $base_path . 'img/accountimg/class/' . ($icons[$class] ?? 'default.jpg') . '" alt="' . translate('admin_chars_class_icon_alt', 'Class Icon') . '" class="account-sahtout-icon">';
 }
 
 function getFactionIcon($race) {
+    global $base_path;
     $allianceRaces = [1, 3, 4, 7, 11];
     $faction = in_array($race, $allianceRaces) ? 'alliance.png' : 'horde.png';
-    return '<img src="/sahtout/img/accountimg/faction/' . $faction . '" alt="' . translate('admin_chars_faction_icon_alt', 'Faction Icon') . '" class="account-sahtout-icon">';
+    return '<img src="' . $base_path . 'img/accountimg/faction/' . $faction . '" alt="' . translate('admin_chars_faction_icon_alt', 'Faction Icon') . '" class="account-sahtout-icon">';
 }
 
 function getOnlineStatus($online) {
@@ -433,38 +451,18 @@ if (empty($_SESSION['csrf_token'])) {
     <meta name="robots" content="noindex">
     <title><?php echo translate('admin_chars_page_title', 'Character Management'); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .account-sahtout-icon {
-            width: 24px;
-            height: 24px;
-            vertical-align: middle;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-        }
-        .alert {
-            margin-bottom: 1rem;
-        }
-        .search-form {
-            margin-bottom: 1.5rem;
-        }
-        .pagination {
-            justify-content: center;
-            margin-top: 1.5rem;
-        }
-        .dashboard-container {
-            min-height: calc(100vh - 150px); /* Adjusts for header (~100px) and footer (~50px) */
-            padding-bottom: 20px; /* Prevents content from touching footer */
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/characters.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/footer.css">
+    
 </head>
 <body class="characters">
     <div class="wrapper">
-        <?php include dirname(__DIR__) . '../../includes/header.php'; ?>
+        <?php include $project_root . 'includes/header.php'; ?>
         <div class="dashboard-container">
             <div class="row">
                 <!-- Sidebar -->
-                <?php include dirname(__DIR__) . '../../includes/admin_sidebar.php'; ?>
+                <?php include $project_root . 'includes/admin_sidebar.php'; ?>
                 <!-- Main Content -->
                 <div class="col-md-9">
                     <h1 class="dashboard-title"><?php echo translate('admin_chars_title', 'Character Management'); ?></h1>
@@ -474,7 +472,7 @@ if (empty($_SESSION['csrf_token'])) {
                         <?php echo sprintf(translate('admin_chars_found_chars', 'Found %d characters on this page (Total: %d).'), count($characters), $total_chars); ?>
                     </div>
                     <!-- Search and Sort Form -->
-                    <form class="search-form" method="GET" action="/Sahtout/admin/characters">
+                    <form class="search-form" method="GET" action="<?php echo $base_path; ?>admin/characters">
                         <div class="row mb-3">
                             <div class="col-md-3">
                                 <label for="search_char_name" class="form-label"><?php echo translate('admin_chars_label_char_name', 'Character Name'); ?></label>
@@ -512,7 +510,7 @@ if (empty($_SESSION['csrf_token'])) {
                             <div class="col-md-6 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary"><?php echo translate('admin_chars_search_button', 'Search'); ?></button>
                                 <?php if ($search_char_name || $search_username || $online_filter !== '' || $min_level !== '' || $max_level !== ''): ?>
-                                    <a href="/Sahtout/admin/characters" class="btn btn-secondary ms-2"><?php echo translate('admin_chars_clear_filters', 'Clear Filters'); ?></a>
+                                    <a href="<?php echo $base_path; ?>admin/characters" class="btn btn-secondary ms-2"><?php echo translate('admin_chars_clear_filters', 'Clear Filters'); ?></a>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -565,7 +563,7 @@ if (empty($_SESSION['csrf_token'])) {
                                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?php echo translate('admin_chars_close_button', 'Close'); ?>"></button>
                                                             </div>
                                                             <div class="modal-body">
-                                                                <form method="POST" action="/Sahtout/admin/characters">
+                                                                <form method="POST" action="<?php echo $base_path; ?>admin/characters">
                                                                     <input type="hidden" name="action" value="manage_character">
                                                                     <input type="hidden" name="guid" value="<?php echo $char['guid']; ?>">
                                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
@@ -654,7 +652,7 @@ if (empty($_SESSION['csrf_token'])) {
                                 <nav aria-label="<?php echo translate('admin_chars_pagination_aria', 'Character pagination'); ?>">
                                     <ul class="pagination">
                                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="/Sahtout/admin/characters?page=<?php echo $page - 1; ?>&search_char_name=<?php echo urlencode($search_char_name); ?>&search_username=<?php echo urlencode($search_username); ?>&online_filter=<?php echo urlencode($online_filter); ?>&min_level=<?php echo urlencode($min_level); ?>&max_level=<?php echo urlencode($max_level); ?>&sort_id=<?php echo $sort_id; ?>" aria-label="<?php echo translate('admin_chars_previous', 'Previous'); ?>">
+                                            <a class="page-link" href="<?php echo $base_path; ?>admin/characters?page=<?php echo $page - 1; ?>&search_char_name=<?php echo urlencode($search_char_name); ?>&search_username=<?php echo urlencode($search_username); ?>&online_filter=<?php echo urlencode($online_filter); ?>&min_level=<?php echo urlencode($min_level); ?>&max_level=<?php echo urlencode($max_level); ?>&sort_id=<?php echo $sort_id; ?>" aria-label="<?php echo translate('admin_chars_previous', 'Previous'); ?>">
                                                 <span aria-hidden="true">&laquo; <?php echo translate('admin_chars_previous', 'Previous'); ?></span>
                                             </a>
                                         </li>
@@ -662,25 +660,25 @@ if (empty($_SESSION['csrf_token'])) {
                                         $start_page = max(1, $page - 2);
                                         $end_page = min($total_pages, $page + 2);
                                         if ($start_page > 1) {
-                                            echo '<li class="page-item"><a class="page-link" href="/Sahtout/admin/characters?page=1&search_char_name=' . urlencode($search_char_name) . '&search_username=' . urlencode($search_username) . '&online_filter=' . urlencode($online_filter) . '&min_level=' . urlencode($min_level) . '&max_level=' . urlencode($max_level) . '&sort_id=' . $sort_id . '">1</a></li>';
+                                            echo '<li class="page-item"><a class="page-link" href="' . $base_path . 'admin/characters?page=1&search_char_name=' . urlencode($search_char_name) . '&search_username=' . urlencode($search_username) . '&online_filter=' . urlencode($online_filter) . '&min_level=' . urlencode($min_level) . '&max_level=' . urlencode($max_level) . '&sort_id=' . $sort_id . '">1</a></li>';
                                             if ($start_page > 2) {
                                                 echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
                                             }
                                         }
                                         for ($i = $start_page; $i <= $end_page; $i++) {
                                             echo '<li class="page-item ' . ($i == $page ? 'active' : '') . '">';
-                                            echo '<a class="page-link" href="/Sahtout/admin/characters?page=' . $i . '&search_char_name=' . urlencode($search_char_name) . '&search_username=' . urlencode($search_username) . '&online_filter=' . urlencode($online_filter) . '&min_level=' . urlencode($min_level) . '&max_level=' . urlencode($max_level) . '&sort_id=' . $sort_id . '">' . $i . '</a>';
+                                            echo '<a class="page-link" href="' . $base_path . 'admin/characters?page=' . $i . '&search_char_name=' . urlencode($search_char_name) . '&search_username=' . urlencode($search_username) . '&online_filter=' . urlencode($online_filter) . '&min_level=' . urlencode($min_level) . '&max_level=' . urlencode($max_level) . '&sort_id=' . $sort_id . '">' . $i . '</a>';
                                             echo '</li>';
                                         }
                                         if ($end_page < $total_pages) {
                                             if ($end_page < $total_pages - 1) {
                                                 echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
                                             }
-                                            echo '<li class="page-item"><a class="page-link" href="/Sahtout/admin/characters?page=' . $total_pages . '&search_char_name=' . urlencode($search_char_name) . '&search_username=' . urlencode($search_username) . '&online_filter=' . urlencode($online_filter) . '&min_level=' . urlencode($min_level) . '&max_level=' . urlencode($max_level) . '&sort_id=' . $sort_id . '">' . $total_pages . '</a></li>';
+                                            echo '<li class="page-item"><a class="page-link" href="' . $base_path . 'admin/characters?page=' . $total_pages . '&search_char_name=' . urlencode($search_char_name) . '&search_username=' . urlencode($search_username) . '&online_filter=' . urlencode($online_filter) . '&min_level=' . urlencode($min_level) . '&max_level=' . urlencode($max_level) . '&sort_id=' . $sort_id . '">' . $total_pages . '</a></li>';
                                         }
                                         ?>
                                         <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="/Sahtout/admin/characters?page=<?php echo $page + 1; ?>&search_char_name=<?php echo urlencode($search_char_name); ?>&search_username=<?php echo urlencode($search_username); ?>&online_filter=<?php echo urlencode($online_filter); ?>&min_level=<?php echo urlencode($min_level); ?>&max_level=<?php echo urlencode($max_level); ?>&sort_id=<?php echo $sort_id; ?>" aria-label="<?php echo translate('admin_chars_next', 'Next'); ?>">
+                                            <a class="page-link" href="<?php echo $base_path; ?>admin/characters?page=<?php echo $page + 1; ?>&search_char_name=<?php echo urlencode($search_char_name); ?>&search_username=<?php echo urlencode($search_username); ?>&online_filter=<?php echo urlencode($online_filter); ?>&min_level=<?php echo urlencode($min_level); ?>&max_level=<?php echo urlencode($max_level); ?>&sort_id=<?php echo $sort_id; ?>" aria-label="<?php echo translate('admin_chars_next', 'Next'); ?>">
                                                 <span aria-hidden="true"><?php echo translate('admin_chars_next', 'Next'); ?> &raquo;</span>
                                             </a>
                                         </li>
@@ -692,58 +690,10 @@ if (empty($_SESSION['csrf_token'])) {
                 </div>
             </div>
         </div>
-        <?php include dirname(__DIR__) . '../../includes/footer.php'; ?>
+        <?php include $project_root . 'includes/footer.php'; ?>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Function to toggle action fields based on selection
-        function toggleActionFields(selectElement) {
-            const modalId = selectElement.id.split('-')[1];
-            const goldFields = document.getElementById('goldFields-' + modalId);
-            const levelFields = document.getElementById('levelFields-' + modalId);
-            const teleportFields = document.getElementById('teleportFields-' + modalId);
-            const teleportDirectlyFields = document.getElementById('teleportDirectlyFields-' + modalId);
-            
-            // Hide all first
-            goldFields.style.display = 'none';
-            levelFields.style.display = 'none';
-            teleportFields.style.display = 'none';
-            teleportDirectlyFields.style.display = 'none';
-            goldFields.querySelector('input').required = false;
-            levelFields.querySelector('input').required = false;
-            teleportFields.querySelectorAll('input').forEach(i => i.required = false);
-            
-            // Show only the selected one
-            if (selectElement.value === 'add_gold') {
-                goldFields.style.display = 'block';
-                goldFields.querySelector('input').required = true;
-            } else if (selectElement.value === 'change_level') {
-                levelFields.style.display = 'block';
-                levelFields.querySelector('input').required = true;
-            } else if (selectElement.value === 'teleport') {
-                teleportFields.style.display = 'block';
-                teleportFields.querySelectorAll('input').forEach(i => i.required = true);
-            } else if (selectElement.value === 'teleport_directly') {
-                teleportDirectlyFields.style.display = 'block';
-            }
-        }
-
-        // Initialize action fields when modal is shown
-        document.querySelectorAll('[data-bs-toggle="modal"]').forEach(button => {
-            button.addEventListener('click', function() {
-                const modalId = this.getAttribute('data-bs-target').replace('#', '');
-                const selectElement = document.querySelector('#' + modalId + ' select[name="char_action"]');
-                selectElement.dispatchEvent(new Event('change'));
-            });
-        });
-
-        // Initialize all modals on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('select[name="char_action"]').forEach(select => {
-                toggleActionFields(select);
-            });
-        });
-    </script>
+    <script src="<?php echo $base_path; ?>assets/js/pages/admin/characters.js"></script>
 </body>
 </html>
 <?php 

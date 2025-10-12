@@ -3,13 +3,13 @@
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
 error_reporting(0);
-
+require_once __DIR__ . '/../../includes/paths.php';
 define('ALLOWED_ACCESS', true);
 
 // Verify includes
 try {
-    require_once '../../includes/config.php';
-    require_once '../../includes/session.php';
+    require_once $project_root . '/includes/config.php';
+    require_once $project_root . '/includes/session.php';
 } catch (Exception $e) {
     http_response_code(500);
     header('Content-Type: application/json');
@@ -181,9 +181,10 @@ try {
 }
 
 // Close database connections
-$site_db->close();
-$auth_db->close();
-$world_db->close();
-$char_db->close();
+if ($site_db) $site_db->close();
+if ($auth_db) $auth_db->close();
+if ($world_db) $world_db->close();
+if ($char_db) $char_db->close();
 exit;
+
 ?>

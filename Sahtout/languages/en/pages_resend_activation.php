@@ -7,7 +7,7 @@ return [
     'email_placeholder' => 'Email',
     'resend_button' => 'Resend Activation Email',
     'login_link' => 'Already activated?',
-    'login_link_text' => 'Log in here',
+    'login_link_text' => '<a href="%s">Log in here</a>',
     'email_subject' => '[RESEND] Activate Your Account',
     'email_greeting' => 'Welcome, {username}!',
     'email_thanks' => 'Thank you for registering. Please click the button below to activate your account:',

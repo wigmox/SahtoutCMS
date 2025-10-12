@@ -1,10 +1,15 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../includes/session.php';
-require_once '../languages/language.php';
-require_once '../includes/config.cap.php';
-require_once '../includes/config.mail.php';
-require_once 'C:/xampp/htdocs/Sahtout/includes/srp6.php';
+
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../includes/paths.php';
+
+// Use $project_root for filesystem includes
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
+require_once $project_root . 'includes/config.cap.php';
+require_once $project_root . 'includes/config.mail.php';
+require_once $project_root . 'includes/srp6.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -130,10 +135,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $stmt->bind_param("sssss", $upper_username, $email, $salt, $verifier, $token);
                     if ($stmt->execute()) {
-                        // Detect protocol and host dynamically
-                        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-                        $host = $_SERVER['HTTP_HOST'];
-                        $activation_link = $protocol . $host . "/sahtout/activate?token=$token";
+                        // Use $base_path for activation link
+                        $activation_link = $base_path . "activate?token=$token";
 
                         // Send activation email
                         try {
@@ -188,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Include header
-require_once '../includes/header.php';
+require_once $project_root . 'includes/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($_SESSION['lang'] ?? 'en'); ?>">
@@ -199,253 +202,9 @@ require_once '../includes/header.php';
     <meta name="robots" content="index">
     <title><?php echo translate('page_title', 'Create Account'); ?></title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            overflow-x: hidden;
-            margin: 0;
-            background: url('/sahtout/img/backgrounds/bg-register.jpg') no-repeat center center fixed;
-            background-size: cover;
-            font-family: 'UnifrakturCook', 'Arial', sans-serif;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        body::before {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            z-index: 1;
-        }
-
-        main {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-            width: 100%;
-            position: relative;
-            z-index: 2;
-        }
-
-        .register-container {
-            max-width: 480px;
-            width: calc(100% - 2rem);
-            background: #1a1a1a7c;
-            border: 3px solid #f1c40f;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(241, 196, 15, 0.4), 0 0 40px rgba(0, 0, 0, 0.8);
-            padding: 2rem;
-            animation: pulse 3s infinite ease-in-out;
-            transition: transform 0.3s ease;
-        }
-
-        .register-container:hover {
-            transform: translateY(-5px) rotate(1deg);
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 8px 24px rgba(241, 196, 15, 0.4), 0 0 40px rgba(0, 0, 0, 0.8); }
-            50% { box-shadow: 0 8px 32px rgba(241, 196, 15, 0.6), 0 0 48px rgba(0, 0, 0, 0.9); }
-        }
-
-        .register-form {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .register-title {
-            font-size: 3rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            color: #f1c40f;
-            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
-            margin-bottom: 1.5rem;
-            text-align: center;
-            letter-spacing: 1px;
-        }
-
-        .register-form form {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-        }
-
-        .register-form input {
-            width: 100%;
-            padding: 0.9rem;
-            font-size: 1.1rem;
-            font-family: 'Arial', sans-serif;
-            background: #2c2c2c;
-            color: #fff;
-            border: 2px solid #f1c40f;
-            border-radius: 6px;
-            outline: none;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-            margin-bottom: 0.7rem;
-        }
-
-        .register-form input:focus {
-            border-color: #ffe600;
-            box-shadow: 0 0 8px rgba(255, 230, 0, 0.6);
-        }
-
-        .register-form input::placeholder {
-            color: #999;
-            font-size: 1rem;
-        }
-
-        .g-recaptcha {
-            margin: 1.2rem auto 0.5rem;
-            display: flex;
-            justify-content: center;
-        }
-
-        .register-button {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: #fff;
-            border: 2px solid #f1c40f;
-            padding: 0.9rem 1.8rem;
-            font-size: 1.3rem;
-            border-radius: 6px;
-            cursor: url('/Sahtout/img/hover_wow.gif') 16 16, auto;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .register-button:hover {
-            background: linear-gradient(135deg, #0e65d6ff 0%, #26a938ff 100%);
-            transform: scale(1.05);
-            box-shadow: 0 4px 16px rgba(231, 76, 60, 0.6);
-        }
-
-        .register-form .error {
-            color: #e74c3c;
-            font-size: 1.1rem;
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            margin: 0.6rem 0 0;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-        }
-
-        .register-form .success {
-            color: #2ecc71;
-            font-size: 1.1rem;
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            margin: 0.6rem 0 0;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-        }
-
-        .login-link-container {
-            text-align: center;
-            font-size: 1.1rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            color: #fff;
-            margin-top: 1.2rem;
-        }
-
-        .login-link-container a {
-            color: #f1c40f;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .login-link-container a:hover {
-            color: #ffe600;
-            text-decoration: underline;
-        }
-
-        @media (max-width: 767px) {
-            html, body {
-                width: 100%;
-                overflow-x: hidden;
-            }
-
-            main {
-                padding: 0;
-                margin-top: 80px;
-            }
-
-            .register-container {
-                max-width: 100%;
-                width: calc(100% - 1.5rem);
-                padding: 1.5rem;
-                margin: 1.5rem auto;
-                box-shadow: 0 6px 16px rgba(241, 196, 15, 0.3);
-            }
-
-            .register-container:hover {
-                transform: translateY(-3px) rotate(0.5deg);
-            }
-
-            .register-title {
-                font-size: 2.4rem;
-            }
-
-            .register-form input {
-                font-size: 1rem;
-                padding: 0.8rem;
-            }
-
-            .register-button {
-                font-size: 1.2rem;
-                padding: 0.8rem 1.5rem;
-            }
-
-            .g-recaptcha {
-                transform: scale(0.85);
-                transform-origin: center;
-            }
-
-            .login-link-container {
-                font-size: 1rem;
-                margin-top: 1rem;
-            }
-
-            .register-form .error, .register-form .success {
-                font-size: 1rem;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .register-title {
-                font-size: 2rem;
-            }
-
-            .register-form input {
-                font-size: 0.95rem;
-                padding: 0.7rem;
-            }
-
-            .register-button {
-                font-size: 1.1rem;
-                padding: 0.7rem 1.2rem;
-            }
-
-            .g-recaptcha {
-                transform: scale(0.77);
-            }
-
-            .login-link-container {
-                font-size: 0.95rem;
-            }
-
-            .register-form .error, .register-form .success {
-                font-size: 0.95rem;
-            }
+        :root{
+            --bg-register:url('<?php echo $base_path; ?>img/backgrounds/bg-register.jpg');
+            --hover-wow-gif: url('<?php echo $base_path; ?>img/hover_wow.gif');
         }
     </style>
 </head>
@@ -463,7 +222,7 @@ require_once '../includes/header.php';
             <?php elseif ($success): ?>
                 <div class="register-form">
                     <p class="success"><?php echo htmlspecialchars($success); ?></p>
-                    <p class="login-link-container"><a href="/sahtout/login"><?php echo translate('login_link_text', 'Click here to login'); ?></a></p>
+                    <p class="login-link-container"><a href="<?php echo $base_path; ?>login"><?php echo translate('login_link_text', 'Click here to login'); ?></a></p>
                 </div>
             <?php endif; ?>
 
@@ -479,13 +238,13 @@ require_once '../includes/header.php';
                 <button type="submit" class="register-button"><?php echo translate('register_button', 'Register'); ?></button>
             </form>
 
-            <p class="login-link-container"><?php echo translate('login_link_text_alt', 'Already have an account? <a href="/sahtout/login">Login</a>'); ?></p>
+            <p class="login-link-container"><?php echo sprintf(translate('login_link_text_alt', 'Already have an account? <a href="%s">Login</a>'), htmlspecialchars($base_path . 'login')); ?></p>
         </section>
     </main>
 
     <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
         <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <?php endif; ?>
-    <?php include_once '../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

@@ -1,8 +1,11 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../../includes/session.php';
-$page_class = "armory";
-require_once '../../includes/header.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../includes/paths.php';
+
+// Use $project_root for filesystem includes
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/header.php';
 
 // Functions to get faction and icon paths
 function getFaction($race) {
@@ -11,7 +14,8 @@ function getFaction($race) {
 }
 
 function factionIconByName($faction) {
-    return "/Sahtout/img/accountimg/faction/" . strtolower($faction) . ".png";
+    global $base_path;
+    return $base_path . "img/accountimg/faction/" . strtolower($faction) . ".png";
 }
 
 // Query top 50 3v3 arena teams 
@@ -57,65 +61,21 @@ while ($row = $result->fetch_assoc()) {
             }
         }
     </script>
-    <style>
-        .arena-content {
-            min-height: calc(100vh - 200px); /* Adjust based on header/footer height */
-        }
-
-        .arena-content .table-container {
-            scrollbar-width: thin;
-            scrollbar-color: #ffcc00 #1f2937;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .arena-content .table-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .arena-content .table-container::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-
-        .arena-content .table-container::-webkit-scrollbar-thumb {
-            background: #ffcc00;
-            border-radius: 4px;
-        }
-
-        .arena-content .top3 {
-            background: linear-gradient(to right, #f59e0b, #d97706) !important;
-        }
-
-        .arena-content tr {
-            cursor: pointer;
-        }
-
-        .arena-content tr:not(.top3):hover {
-            background-color: #4b5563; /* Tailwind's gray-600 */
-            transition: background-color 0.2s ease-in-out;
-        }
-
-        .arena-content tr.top3:hover {
-            filter: brightness(1.2);
-            transition: filter 0.2s ease-in-out;
-            cursor: url('/Sahtout/img/hover_wow.gif') 16 16, auto;
-        }
-
-        /* Scope nav-container override to arena-nav-wrapper */
-        .arena-nav-wrapper .nav-container {
-            border: 2px double #15803d;
-        }
-        .arena-content a {
-            color: #ffffff;
-            text-decoration: none;
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/armory/arena_3v3.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/armory/arenanavbar.css">
+</head>
+<style>
+       :root{
+            --bg-armory:url('<?php echo $base_path; ?>img/backgrounds/bg-armory.jpg');
+            --hover-wow-gif: url('<?php echo $base_path; ?>img/hover_wow.gif');
         }
     </style>
-</head>
 <body class="<?php echo $page_class; ?>">
     <div class="arena-content tw-bg-900 tw-text-white">
         <div class="tw-container tw-mx-auto tw-px-4 tw-py-8">
             <h1 class="tw-text-4xl tw-font-bold tw-text-center tw-text-amber-400 tw-mb-6"><?php echo translate('arena_3v3_title', 'Top 50 3v3 Arena Teams'); ?></h1>
 
-            <?php include_once '../../includes/arenanavbar.php'; ?>
+            <?php include_once $project_root . 'includes/arenanavbar.php'; ?>
 
             <?php if (count($teams) == 0): ?>
                 <div class="tw-text-center tw-text-lg tw-text-amber-400 tw-bg-gray-800 tw-p-6 tw-rounded-lg tw-shadow-lg">
@@ -142,7 +102,7 @@ while ($row = $result->fetch_assoc()) {
                             foreach ($teams as $team) {
                                 $rowClass = ($rank <= 3 && $teamCount >= 3) ? 'top3' : '';
                                 $faction = getFaction($team['race']);
-                                echo "<tr class='{$rowClass} tw-transition tw-duration-200' onclick=\"window.location='/sahtout/armory/arenateam?arenaTeamId={$team['arenaTeamId']}';\">
+                                echo "<tr class='{$rowClass} tw-transition tw-duration-200' onclick=\"window.location='{$base_path}armory/arenateam?arenaTeamId={$team['arenaTeamId']}';\">
                                     <td class='tw-py-3 tw-px-6'>{$rank}</td>
                                     <td class='tw-py-3 tw-px-6'>" . htmlspecialchars($team['team_name']) . "</td>
                                     <td class='tw-py-3 tw-px-6'>
@@ -162,6 +122,6 @@ while ($row = $result->fetch_assoc()) {
             <?php endif; ?>
         </div>
     </div>
-    <?php include_once '../../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

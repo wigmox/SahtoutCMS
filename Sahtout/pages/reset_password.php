@@ -1,15 +1,20 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../includes/session.php';
-require_once '../includes/config.cap.php';
-require_once '../includes/srp6.php';
-require_once '../includes/config.mail.php';
-require_once '../languages/language.php';
+
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../includes/paths.php';
+
+// Use $project_root for filesystem includes
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/config.cap.php';
+require_once $project_root . 'includes/srp6.php';
+require_once $project_root . 'includes/config.mail.php';
+require_once $project_root . 'languages/language.php';
 $page_class = 'reset_password';
-require_once '../includes/header.php';
+require_once $project_root . 'includes/header.php';
 
 if (isset($_SESSION['user_id'])) {
-    header("Location: /sahtout/account");
+    header("Location: {$base_path}account");
     exit();
 }
 
@@ -28,7 +33,7 @@ $nonce = $_SESSION['reset_nonce'];
 
 // Function to send confirmation email
 function sendResetConfirmationEmail($username, $email) {
-    global $errors;
+    global $errors, $project_root;
     try {
         $mail = getMailer();
         $mail->addAddress($email, $username);
@@ -121,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
 
         if (empty($errors)) {
             // Generate new SRP-6a salt and verifier
-            $salt = SRP6::GenerateSalt();
+            $salt = SRP6::generateSalt();
             $verifier = SRP6::calculateVerifier($username, $password, $salt);
 
             // Update account table
@@ -159,175 +164,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
     <meta name="description" content="<?php echo translate('meta_description', 'Reset your password for our World of Warcraft server.'); ?>">
     <title><?php echo translate('page_title', 'Reset Password'); ?></title>
     <style>
-        body.reset_password {
-            color: #fff;
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background: url('/sahtout/img/backgrounds/bg-login.jpg') no-repeat center center fixed;
-            background-size: cover;
-            font-family: 'UnifrakturCook', 'Arial', sans-serif;
-            position: relative;
-        }
-        html, body {
-            width: 100%;
-            overflow-x: hidden;
-            margin: 0;
-        }
-        body::before {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            z-index: 1;
-        }
-        .wrapper {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-            width: 100%;
-            position: relative;
-            z-index: 2;
-        }
-        .form-container {
-            max-width: 500px;
-            width: calc(100% - 2rem);
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #ffd700;
-            border-radius: 8px;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-            padding: 2.5rem;
-        }
-        .form-section {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .form-section h2 {
-            font-size: 2.8rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            color: #ffd700;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            margin-bottom: 1.2rem;
-            text-align: center;
-        }
-        .form-section form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.2rem;
-        }
-        .form-section input {
-            width: 100%;
-            padding: 1rem;
-            font-size: 1.1rem;
-            font-family: 'Arial', sans-serif;
-            background: #333;
-            color: #fff;
-            border: 1px solid #ffd700;
-            border-radius: 4px;
-            outline: none;
-            transition: border-color 0.3s ease;
-            margin-bottom: 0.5rem;
-        }
-        .form-section input:focus {
-            border-color: #ffe600;
-            box-shadow: 0 0 5px rgba(255, 230, 0, 0.5);
-        }
-        .form-section input::placeholder {
-            color: #ccc;
-        }
-        .g-recaptcha {
-            margin: 0 auto 0.5rem;
-            display: flex;
-            justify-content: center;
-        }
-        .form-section button {
-            background: #333;
-            color: #ffd700;
-            border: 2px solid #ffd700;
-            padding: 1rem 2rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            font-size: 1.2rem;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .form-section button:hover {
-            background: #ffd700;
-            color: #000;
-            transform: scale(1.05);
-        }
-        .form-section .error {
-            color: #ff0000;
-            font-size: 0.9rem;
-            text-align: center;
-            margin: 0.5rem 0 0;
-        }
-        .form-section .success {
-            color: #00ff00;
-            font-size: 0.9rem;
-            text-align: center;
-            margin: 0.5rem 0 0;
-        }
-        .form-section .login-link {
-            text-align: center;
-            font-size: 1.1rem;
-            font-family: 'UnifrakturCook', sans-serif;
-            color: #fff;
-            margin-top: 1.5rem;
-        }
-        .form-section .login-link a {
-            color: #ffd700;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .form-section .login-link a:hover {
-            color: #ffe600;
-            text-decoration: underline;
-        }
-        footer {
-            flex-shrink: 0;
-            width: 100%;
-            text-align: center;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.7);
-            border-top: 2px solid #ffd700;
-            color: #fff;
-            font-family: 'Arial', sans-serif;
-            font-size: 0.9rem;
-            position: relative;
-            z-index: 2;
-        }
-        @media (max-width: 767px) {
-            .wrapper {
-                padding: 0;
-                margin-top: 100px;
-            }
-            .form-container {
-                max-width: 90%;
-                padding: 1.5rem;
-            }
-            .form-section h2 {
-                font-size: 2.2rem;
-            }
-            .form-section input {
-                font-size: 1rem;
-                padding: 0.8rem;
-            }
-            .form-section button {
-                font-size: 1.1rem;
-                padding: 0.8rem 1.5rem;
-            }
-            .form-section .login-link {
-                font-size: 1rem;
-                margin-top: 1rem;
-            }
+        :root{
+            --bg-reset-pw:url('<?php echo $base_path; ?>img/backgrounds/bg-reset-password.jpg');
         }
     </style>
 </head>
@@ -346,11 +184,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
                 <?php if ($success): ?>
                     <div class="success">
                         <p><?php echo htmlspecialchars($success); ?></p>
-                        <button onclick="window.location.href='/sahtout/login'" class="login-button"><?php echo translate('login_link', 'Back to Login'); ?></button>
+                        <p class="login-link"><?php echo sprintf(translate('login_link', '<a href="%s">Back to Login</a>'), htmlspecialchars($base_path . 'login')); ?></p>
                     </div>
                     <script>
                         setTimeout(() => {
-                            window.location.href = '/sahtout/login';
+                            window.location.href = '<?php echo $base_path; ?>login';
                         }, 3000);
                     </script>
                 <?php else: ?>
@@ -363,9 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
                                 <div class="g-recaptcha" data-sitekey="<?php echo RECAPTCHA_SITE_KEY; ?>"></div>
                             <?php endif; ?>
                             <button type="submit"><?php echo translate('reset_button', 'Reset Password'); ?></button>
-                            <div class="login-link">
-                                <a href="/sahtout/login"><?php echo translate('login_link', 'Back to Login'); ?></a>
-                            </div>
+                            <p class="login-link"><?php echo sprintf(translate('login_link', '<a href="%s">Back to Login</a>'), htmlspecialchars($base_path . 'login')); ?></p>
                         </form>
                     <?php endif; ?>
                 <?php endif; ?>
@@ -375,6 +211,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $valid_token) {
     <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
         <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <?php endif; ?>
-    <?php include_once '../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

@@ -4,7 +4,7 @@ html, body {
 }
 
 body.news {
-    background: #1a1a1a url('/sahtout/img/backgrounds/bg-news.jpg') no-repeat center center fixed;
+    background: var(--bg-news) no-repeat center center fixed;
     background-size: cover;
     min-height: 100vh;
     color: #e0e0e0;

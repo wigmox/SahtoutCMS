@@ -1,13 +1,14 @@
 <?php
 ob_start(); // Start output buffering to catch any unexpected output
 define('ALLOWED_ACCESS', true);
-require_once '../includes/session.php';
-require_once '../includes/srp6.php';
-require_once '../languages/language.php'; // Include language file for translations
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/srp6.php';
+require_once $project_root . 'languages/language.php'; // Include language file for translations
 
 // Early session validation
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['username'])) {
-    header("Location: /Sahtout/login?error=invalid_session");
+    header("Location: {$base_path}login?error=invalid_session");
     exit();
 }
 
@@ -43,14 +44,14 @@ if (isset($_SESSION['debug_errors'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($auth_db->connect_error || $char_db->connect_error || $site_db->connect_error) {
         $_SESSION['error'] = translate('error_database_connection', 'Database connection failed');
-        header("Location: /Sahtout/account");
+        header("Location: {$base_path}account");
         exit();
     }
 
     // Verify CSRF token
     if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         $_SESSION['error'] = translate('error_invalid_form_submission', 'Invalid form submission');
-        header("Location: /Sahtout/account");
+        header("Location: {$base_path}account");
         exit();
     }
 
@@ -122,11 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_log->close();
 
             $_SESSION['message'] = translate('message_email_updated', 'Email updated successfully!');
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         } catch (Exception $e) {
             $_SESSION['error'] = $e->getMessage();
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         }
     }
@@ -181,11 +182,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_log->close();
 
             $_SESSION['message'] = translate('message_password_changed', 'Password changed successfully!');
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         } catch (Exception $e) {
             $_SESSION['error'] = $e->getMessage();
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         }
     }
@@ -291,11 +292,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_log->close();
 
             $_SESSION['message'] = sprintf(translate('message_character_teleported', 'Character teleported to %s!'), ucfirst($destination));
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         } catch (Exception $e) {
             $_SESSION['error'] = $e->getMessage();
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         }
     }
@@ -342,11 +343,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_log->close();
 
             $_SESSION['message'] = translate('message_avatar_updated', 'Avatar updated successfully!');
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         } catch (Exception $e) {
             $_SESSION['error'] = $e->getMessage();
-            header("Location: /Sahtout/account");
+            header("Location: {$base_path}account");
             exit();
         }
     }
@@ -354,7 +355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Now proceed with page rendering
 $page_class = 'account';
-include_once '../includes/header.php';
+include_once $project_root . 'includes/header.php';
 
 // Database queries for page content
 if ($auth_db->connect_error || $char_db->connect_error || $site_db->connect_error) {
@@ -461,6 +462,7 @@ function getAccountStatus($locked, $banInfo) {
 }
 
 function getGMStatus($gmlevel, $role) {
+    global $base_path;
     $icon = ($gmlevel > 0 || $role !== 'player') ? 'gm_icon.gif' : 'player_icon.jpg';
     $color = ($gmlevel > 0 || $role !== 'player') ? '#f0a500' : '#aaa';
     
@@ -480,7 +482,7 @@ function getGMStatus($gmlevel, $role) {
         $rank = translate('gm_rank_player', 'Player');
     }
     
-    return sprintf('<img src="/sahtout/img/accountimg/%s" alt="%s" class="account-icon"> <span style="color: %s">%s</span>', $icon, translate('status_icon', 'Status Icon'), $color, $rank);
+    return sprintf('<img src="%simg/accountimg/%s" alt="%s" class="account-icon"> <span style="color: %s">%s</span>', $base_path, $icon, translate('status_icon', 'Status Icon'), $color, $rank);
 }
 
 function getOnlineStatus($online) {
@@ -488,6 +490,7 @@ function getOnlineStatus($online) {
 }
 
 function getRaceIcon($race, $gender) {
+    global $base_path;
     $races = [
         1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
         5 => 'undead', 6 => 'tauren', 7 => 'gnome', 8 => 'troll',
@@ -496,22 +499,24 @@ function getRaceIcon($race, $gender) {
     $gender_folder = ($gender == 1) ? 'female' : 'male';
     $race_name = $races[$race] ?? 'default';
     $image = $race_name . '.png';
-    return sprintf('<img src="/sahtout/img/accountimg/race/%s/%s" alt="%s" class="account-icon">', $gender_folder, $image, translate('race_icon', 'Race Icon'));
+    return sprintf('<img src="%simg/accountimg/race/%s/%s" alt="%s" class="account-icon">', $base_path, $gender_folder, $image, translate('race_icon', 'Race Icon'));
 }
 
 function getClassIcon($class) {
+    global $base_path;
     $icons = [
         1 => 'warrior.webp', 2 => 'paladin.webp', 3 => 'hunter.webp', 4 => 'rogue.webp',
         5 => 'priest.webp', 6 => 'deathknight.webp', 7 => 'shaman.webp', 8 => 'mage.webp',
         9 => 'warlock.webp', 11 => 'druid.webp'
     ];
-    return sprintf('<img src="/sahtout/img/accountimg/class/%s" alt="%s" class="account-icon">', ($icons[$class] ?? 'default.jpg'), translate('class_icon', 'Class Icon'));
+    return sprintf('<img src="%simg/accountimg/class/%s" alt="%s" class="account-icon">', $base_path, ($icons[$class] ?? 'default.jpg'), translate('class_icon', 'Class Icon'));
 }
 
 function getFactionIcon($race) {
+    global $base_path;
     $allianceRaces = [1, 3, 4, 7, 11]; // Human, Dwarf, Night Elf, Gnome, Draenei
     $faction = in_array($race, $allianceRaces) ? 'alliance.png' : 'horde.png';
-    return sprintf('<img src="/sahtout/img/accountimg/faction/%s" alt="%s" class="account-icon">', $faction, translate('faction_icon', 'Faction Icon'));
+    return sprintf('<img src="%simg/accountimg/faction/%s" alt="%s" class="account-icon">', $base_path, $faction, translate('faction_icon', 'Faction Icon'));
 }
 
 // Helper function to get avatar display name translation
@@ -527,248 +532,15 @@ function getAvatarDisplayName($filename) {
     <title><?php echo sprintf(translate('page_title', 'My Account - %s'), htmlspecialchars($accountInfo['username'] ?? '')); ?></title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <style>
-        body {
-            background-color: #111;
-            color: #fff;
-            font-family: 'Arial', sans-serif;
-        }
-        .account-container {
-            background-color: rgba(0, 0, 0, 0.75);
-            max-width: 1300px; /* Wider for desktop */
-            width: 90vw; /* Responsive to viewport */
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-        strong {
-            color: #ffd700;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-        }
-        p {
-            color: #ddd;
-            font-size: 1.2rem;
-            line-height: 1.5;
-        }
-        .account-title {
-            color: #f0a500;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            text-align: center;
-        }
-        .account-tabs .nav-link {
-            background: #333;
-            color: #ffd700;
-            border: 2px solid #ffd700;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-        .account-tabs .nav-link:hover {
-            background: #ffd700;
-            color: #000;
-        }
-        .account-tabs .nav-link.active {
-            background: #ffd700;
-            color: #000;
-            border-color: #ffd700;
-        }
-        .text-warning {
-            color: #f0a500;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
-        }
-        .account-card {
-            background: rgba(0, 0, 0, 0.45);
-            border: 2px solid #ffd700;
-            border-radius: 8px;
-        }
-        .account-card h3 {
-            color: #2db40c;
-        }
-        .account-icon {
-            width: 18px;
-            height: 18px;
-            vertical-align: middle;
-            margin-right: 6px;
-        }
-        .account-profile-pic {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #ffd700;
-        }
-        .account-gallery img {
-            width: 100px;
-            height: 100px;
-            border-radius: 5px;
-            cursor: pointer;
-            border: 2px solid transparent;
-        }
-        .account-gallery img.selected {
-            border-color: #ffd700;
-        }
-        .account-gallery span {
-            color: #fff;
-            font-size: 0.9rem;
-            text-align: center;
-            display: block;
-        }
-        .account-table {
-            background: rgba(0, 0, 0, 0.75);
-            border: 2px solid #ffd700;
-        }
-        .account-table th {
-            background: #333;
-            color: #ffd700;
-            border: 2px solid #ffd700;
-        }
-        .account-table td {
-            border: 2px solid #ffd700;
-            word-break: break-word;
-            max-width: 250px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .account-message {
-            border-radius: 4px;
-            text-align: center;
-        }
-        .account-gold {
-            color: #ffd700;
-        }
-        .btn-account {
-            background: #333;
-            color: #ffd700;
-            border: 2px solid #ffd700;
-            font-family: 'UnifrakturCook', sans-serif;
-            padding: 0.5rem 1.5rem;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .btn-account:hover {
-            background: #ffd700;
-            color: #000;
-            transform: scale(1.05);
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-        .btn-account:disabled {
-            background: #555;
-            color: #aaa;
-            border-color: #aaa;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-        .form-label {
-            color: #ffd700;
-            font-size: 1.1rem;
-            font-weight: 600;
-            text-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
-            margin-bottom: 0.5rem;
-            display: block;
-        }
-        .form-control, .form-select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid #ffd700;
-            border-radius: 6px;
-            color: #f0f0f0;
-            padding: 0.75rem;
-            transition: all 0.3s ease;
-            position: relative;
-            font-size: 1rem;
-        }
-        .form-control::placeholder, .form-select option:disabled {
-            color: #cccccc;
-            opacity: 1;
-        }
-        .form-control:focus, .form-select:focus {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: #2db40c;
-            color: #f0f0f0;
-            box-shadow: 0 0 12px rgba(45, 180, 12, 0.7);
-            outline: none;
-        }
-        .form-control::after, .form-select::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 0;
-            height: 3px;
-            background: #2db40c;
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
-        }
-        .form-control:focus::after, .form-select:focus::after {
-            width: 100%;
-        }
-        .form-group {
-            position: relative;
-            margin-bottom: 1.5rem;
-        }
-        .teleport-cooldown {
-            color: #f0a500;
-        }
-        @media (max-width: 600px) {
-            .account-container {
-                max-width: 100%;
-                padding: 0 0.5rem;
-            }
-            .account-title {
-                font-size: 1.5rem;
-            }
-            .account-profile-pic {
-                width: 80px;
-                height: 80px;
-            }
-            .account-gallery img {
-                width: 60px;
-                height: 60px;
-            }
-            .account-gallery span {
-                font-size: 0.75rem;
-            }
-           
-            .account-table thead {
-                display: none;
-            }
-            .account-table tr {
-                display: block;
-                margin-bottom: 1rem;
-                border-bottom: 2px solid #ffd700;
-            }
-            .account-table td {
-                display: block;
-                padding: 0.5rem;
-                max-width: 100%;
-                position: relative;
-                padding-left: 40%;
-                font-size: 0.75rem;
-            }
-            .account-table td::before {
-                content: attr(data-label);
-                position: absolute;
-                left: 0.5rem;
-                width: 35%;
-                font-weight: bold;
-                color: #ffd700;
-            }
-            .form-control, .form-select {
-                padding: 0.5rem;
-                font-size: 0.9rem;
-            }
-            .form-label {
-                font-size: 0.95rem;
-            }
-            .btn-account {
-                padding: 0.4rem 1rem;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
 </head>
+<style>
+    :root{
+            --bg-account:url('<?php echo $base_path; ?>img/backgrounds/bg-account.jpg');
+            --hover-wow-gif: url('<?php echo $base_path; ?>img/hover_wow.gif');
+        }
+</style>
 <body>
-    <?php include_once '../includes/header.php'; ?>
+    <?php include_once $project_root . 'includes/header.php'; ?>
     <main>
         <div class="account-container">
             <h1 class="account-title mb-4"><?php echo translate('dashboard_title', 'Account Dashboard'); ?></h1>
@@ -787,22 +559,22 @@ function getAvatarDisplayName($filename) {
             <?php endif; ?>
 
             <ul class="nav nav-tabs account-tabs mb-4 justify-content-center" id="accountTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab"><?php echo translate('tab_overview', 'Overview'); ?></button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="characters-tab" data-bs-toggle="tab" data-bs-target="#characters" type="button" role="tab"><?php echo translate('tab_characters', 'Characters'); ?></button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab"><?php echo translate('tab_activity', 'Activity'); ?></button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <a class="nav-link" href="vote"><?php echo translate('tab_vote', 'Vote'); ?></a>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab"><?php echo translate('tab_security', 'Security'); ?></button>
-    </li>
-</ul>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab"><?php echo translate('tab_overview', 'Overview'); ?></button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="characters-tab" data-bs-toggle="tab" data-bs-target="#characters" type="button" role="tab"><?php echo translate('tab_characters', 'Characters'); ?></button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab"><?php echo translate('tab_activity', 'Activity'); ?></button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" href="<?php echo $base_path; ?>vote"><?php echo translate('tab_vote', 'Vote'); ?></a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab"><?php echo translate('tab_security', 'Security'); ?></button>
+                </li>
+            </ul>
 
             <div class="tab-content">
                 <div class="tab-pane fade show active" id="overview" role="tabpanel">
@@ -816,7 +588,7 @@ function getAvatarDisplayName($filename) {
                                         <?php
                                         $avatar_display = !empty($currencies['avatar']) ? $currencies['avatar'] : 'user.jpg';
                                         ?>
-                                        <img src="/sahtout/img/accountimg/profile_pics/<?php echo htmlspecialchars($avatar_display); ?>" alt="<?php echo translate('avatar_alt', 'Avatar'); ?>" class="account-profile-pic mb-3">
+                                        <img src="<?php echo $base_path; ?>img/accountimg/profile_pics/<?php echo htmlspecialchars($avatar_display); ?>" alt="<?php echo translate('avatar_alt', 'Avatar'); ?>" class="account-profile-pic mb-3">
                                         <p><strong><?php echo translate('label_username', 'Username'); ?>:</strong> <?php echo htmlspecialchars($accountInfo['username'] ?? 'N/A'); ?></p>
                                         <p><strong><?php echo translate('label_account_id', 'Account ID'); ?>:</strong> <?php echo $accountInfo['id'] ?? 'N/A'; ?></p>
                                         <p><strong><?php echo translate('label_status', 'Status'); ?>:</strong> <?php echo getAccountStatus($accountInfo['locked'] ?? 0, $banInfo); ?></p>
@@ -832,7 +604,7 @@ function getAvatarDisplayName($filename) {
                                         <p><strong><?php echo translate('label_email', 'Email'); ?>:</strong> <?php echo htmlspecialchars($accountInfo['email'] ?? translate('email_not_set', 'Not set')); ?></p>
                                         <p><strong class="text-warning"><?php echo translate('label_expansion', 'Expansion'); ?>:</strong> <?php echo translate('expansion_' . ($accountInfo['expansion'] ?? 2), ($accountInfo['expansion'] ?? 2) == 2 ? 'Wrath of the Lich King' : ($accountInfo['expansion'] == 1 ? 'The Burning Crusade' : 'Classic')); ?></p>
                                         <?php if ($role === 'admin' || $role === 'moderator' || $gmlevel > 0): ?>
-                                            <a href="/Sahtout/admin/dashboard" class="btn btn-account mt-3"><?php echo translate('button_admin_panel', 'Admin Panel'); ?></a>
+                                            <a href="<?php echo $base_path; ?>admin/dashboard" class="btn-account"><?php echo translate('button_admin_panel', 'Admin Panel'); ?></a>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -880,7 +652,7 @@ function getAvatarDisplayName($filename) {
                                                 }
                                                 echo sprintf('<span class="account-gold">%.2fg</span>', number_format($totalGold / 10000, 2));
                                             ?>
-                                            <img src="/sahtout/img/accountimg/gold_coin.png" alt="<?php echo translate('gold_icon', 'Gold Icon'); ?>" class="account-icon">
+                                            <img src="<?php echo $base_path; ?>img/accountimg/gold_coin.png" alt="<?php echo translate('gold_icon', 'Gold Icon'); ?>" class="account-icon">
                                         </p>
                                         <p><strong><?php echo translate('label_points', 'Points'); ?>:</strong> <?php echo $currencies['points']; ?> P</p>
                                         <p><strong><?php echo translate('label_tokens', 'Tokens'); ?>:</strong> <?php echo $currencies['tokens']; ?> T</p>
@@ -926,7 +698,7 @@ function getAvatarDisplayName($filename) {
                                                         <option style="color: #000;" value="dalaran"><?php echo translate('city_dalaran', 'Dalaran'); ?></option>
                                                     </select>
                                                 </div>
-                                                <button class="btn btn-account" type="submit" name="teleport_character" <?php echo $is_on_cooldown ? 'disabled' : ''; ?>><?php echo translate('button_teleport', 'Teleport'); ?></button>
+                                                <button class="btn-account" type="submit" name="teleport_character" <?php echo $is_on_cooldown ? 'disabled' : ''; ?>><?php echo translate('button_teleport', 'Teleport'); ?></button>
                                                 <?php if ($is_on_cooldown): ?>
                                                     <p class="mt-2 teleport-cooldown" data-cooldown="<?php echo $cooldown_remaining; ?>"><?php echo sprintf(translate('teleport_cooldown', 'Teleport Cooldown: %s minute%s'), $minutes, $minutes > 1 ? 's' : ''); ?></p>
                                                 <?php endif; ?>
@@ -985,7 +757,7 @@ function getAvatarDisplayName($filename) {
                                 <input class="form-control" type="email" id="new-email" name="new_email" required minlength="3" maxlength="36" value="<?php echo htmlspecialchars($accountInfo['email'] ?? ''); ?>" placeholder="<?php echo translate('placeholder_new_email', 'Enter new email'); ?>">
                             </div>
                             <div class="col-12 text-center">
-                                <button class="btn btn-account" type="submit" name="change_email"><?php echo translate('button_update_email', 'Update Email'); ?></button>
+                                <button class="btn-account" type="submit" name="change_email"><?php echo translate('button_update_email', 'Update Email'); ?></button>
                             </div>
                         </form>
                     </div>
@@ -1007,7 +779,7 @@ function getAvatarDisplayName($filename) {
                                 <input class="form-control" type="password" id="confirm-password" name="confirm_password" required minlength="6" maxlength="32" placeholder="<?php echo translate('placeholder_confirm_password', 'Confirm new password'); ?>">
                             </div>
                             <div class="col-12 text-center">
-                                <button class="btn btn-account" type="submit" name="change_password"><?php echo translate('button_change_password', 'Change Password'); ?></button>
+                                <button class="btn-account" type="submit" name="change_password"><?php echo translate('button_change_password', 'Change Password'); ?></button>
                             </div>
                         </form>
                     </div>
@@ -1021,7 +793,7 @@ function getAvatarDisplayName($filename) {
                                 <div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-2 account-gallery">
                                     <?php foreach ($available_avatars as $avatar): ?>
                                         <div class="col text-center">
-                                            <img src="/sahtout/img/accountimg/profile_pics/<?php echo htmlspecialchars($avatar['filename']); ?>" 
+                                            <img src="<?php echo $base_path; ?>img/accountimg/profile_pics/<?php echo htmlspecialchars($avatar['filename']); ?>" 
                                                  class="<?php echo $currencies['avatar'] === $avatar['filename'] ? 'selected' : ''; ?>" 
                                                  onclick="selectAvatar('<?php echo htmlspecialchars($avatar['filename']); ?>')" 
                                                  alt="<?php echo htmlspecialchars(getAvatarDisplayName($avatar['filename'])); ?>">
@@ -1029,7 +801,7 @@ function getAvatarDisplayName($filename) {
                                         </div>
                                     <?php endforeach; ?>
                                     <div class="col text-center">
-                                        <img src="/sahtout/img/accountimg/profile_pics/user.jpg" 
+                                        <img src="<?php echo $base_path; ?>img/accountimg/profile_pics/user.jpg" 
                                              class="<?php echo empty($currencies['avatar']) ? 'selected' : ''; ?>" 
                                              onclick="selectAvatar('')" 
                                              alt="<?php echo translate('avatar_default', 'Default Avatar'); ?>">
@@ -1039,7 +811,7 @@ function getAvatarDisplayName($filename) {
                                 <input type="hidden" name="avatar" id="avatar" value="<?php echo htmlspecialchars($currencies['avatar'] ?? ''); ?>">
                             </div>
                             <div class="col-12 text-center">
-                                <button class="btn btn-account" type="submit" name="change_avatar"><?php echo translate('button_update_avatar', 'Update Avatar'); ?></button>
+                                <button class="btn-account" type="submit" name="change_avatar"><?php echo translate('button_update_avatar', 'Update Avatar'); ?></button>
                             </div>
                         </form>
                     </div>
@@ -1047,7 +819,7 @@ function getAvatarDisplayName($filename) {
                     <div>
                         <h3 class="h4 text-warning"><?php echo translate('section_account_actions', 'Account Actions'); ?></h3>
                         <p class="text-center">
-                            <a href="/sahtout/logout" class="text-warning"><?php echo translate('action_logout', 'Logout'); ?></a> | 
+                            <a href="<?php echo $base_path; ?>logout" class="text-warning"><?php echo translate('action_logout', 'Logout'); ?></a> | 
                             <a href="#" class="text-danger"><?php echo translate('action_request_deletion', 'Request Account Deletion'); ?></a>
                         </p>
                     </div>
@@ -1055,7 +827,7 @@ function getAvatarDisplayName($filename) {
             </div>
         </div>
     </main>
-    <?php include_once '../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>

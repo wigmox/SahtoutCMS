@@ -1,19 +1,21 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once 'C:\xampp\htdocs\Sahtout\includes\session.php';
-require_once 'C:\xampp\htdocs\Sahtout\languages\language.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
 $page_class = 'recaptcha';
-require_once 'C:\xampp\htdocs\Sahtout\includes\header.php';
+require_once $project_root . 'includes/header.php';
 
 $errors = [];
 $success = false;
-$configCapFile = realpath('C:\xampp\htdocs\Sahtout\includes\config.cap.php');
+$configCapFile = realpath($project_root . 'includes/config.cap.php');
 $default_site_key = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 $default_secret_key = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
 
@@ -64,9 +66,9 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
 
         $capConfigDir = dirname($configCapFile);
         if (!is_writable($capConfigDir)) {
-            $errors[] = translate('err_cap_dir_not_writable', 'reCAPTCHA config directory is not writable: %s', $capConfigDir);
+            $errors[] = sprintf(translate('err_cap_dir_not_writable', 'reCAPTCHA config directory is not writable: %s'), $capConfigDir);
         } elseif (file_put_contents($configCapFile, $capConfigContent) === false) {
-            $errors[] = translate('err_failed_write_cap', 'Failed to write reCAPTCHA config file: %s', $configCapFile);
+            $errors[] = sprintf(translate('err_failed_write_cap', 'Failed to write reCAPTCHA config file: %s'), $configCapFile);
         } else {
             $success = true;
             $recaptcha_status = $recaptcha_enabled ? 'enabled' : 'disabled';
@@ -86,220 +88,19 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <!-- Roboto font -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-         body{
-            background-color: #212529;
-        }
-        /* Main content */
-        .main-content {
-            padding-top: 80px; /* Clear header */
-            min-height: calc(100vh - 80px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* Center content vertically */
-        }
-
-        .content {
-            padding: 1.5rem;
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            margin: 1rem;
-            color: #212529;
-            text-align: center; /* Center content horizontally */
-            flex-grow: 1; /* Allow content to expand */
-        }
-
-        /* Status, error, and success messages */
-        .status-box, .error-box, .success-box {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            text-align: left;
-        }
-
-        .status-box {
-            background: #e9ecef;
-            border: 1px solid #ced4da;
-        }
-
-        .error-box {
-            background: #f8d7da;
-            border: 1px solid #f5c2c7;
-        }
-
-        .success-box {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-        }
-
-        .db-status {
-            display: flex;
-            align-items: center;
-            margin: 0.5rem 0;
-        }
-
-        .db-status-icon {
-            margin-right: 0.5rem;
-            font-size: 1.1rem;
-        }
-
-        .db-status-success {
-            color: #28a745;
-        }
-
-        .db-status-error {
-            color: #dc3545;
-        }
-
-        .db-status-muted {
-            color: #6c757d;
-        }
-
-        .error {
-            color: #dc3545;
-            font-weight: 500;
-        }
-
-        .success, .text-success {
-            color: #28a745;
-            font-weight: 500;
-        }
-
-        .text-muted {
-            color: #6c757d;
-            font-weight: 500;
-        }
-
-        .note {
-            font-size: 0.9rem;
-            color: #6c757d;
-            margin-top: 0.5rem;
-            text-align: left;
-        }
-
-        .recaptcha-fields {
-            display: none;
-        }
-
-        .recaptcha-fields.active {
-            display: block;
-        }
-
-        /* Form check (custom toggle switch) */
-        .form-check {
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-            position: relative;
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .form-check-input {
-            width: 0;
-            height: 0;
-            opacity: 0;
-            position: absolute;
-        }
-
-        .form-check-label {
-            font-family: 'Roboto', Arial, sans-serif;
-            font-size: 0.95rem;
-            color: #212529;
-            cursor: pointer;
-            padding-left: 3rem;
-            user-select: none;
-        }
-
-        /* Toggle switch background */
-        .form-check-label::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 2.5rem;
-            height: 1.25rem;
-            background: #6c757d; /* Gray when unchecked */
-            border-radius: 1rem;
-            transition: background-color 0.3s ease;
-        }
-
-        /* Toggle switch circle */
-        .form-check-label::after {
-            content: '';
-            position: absolute;
-            left: 0.2rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 1rem;
-            height: 1rem;
-            background: #ffffff;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: left 0.3s ease;
-        }
-
-        /* Checked state */
-        .form-check-input:checked + .form-check-label::before {
-            background: #007bff; /* Blue when checked */
-        }
-
-        .form-check-input:checked + .form-check-label::after {
-            left: 1.3rem; /* Slide circle to the right */
-        }
-
-        /* Hover effect */
-        .form-check-label:hover::before {
-            background: #0056b3; /* Darker blue on hover */
-        }
-
-        /* Focus state */
-        .form-check-input:focus + .form-check-label::before {
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Bootstrap-style focus ring */
-        }
-
-        /* Constrain form select */
-        .form-select {
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Mobile adjustments */
-        @media (max-width: 768px) {
-            .main-content {
-                padding-top: 60px; /* Adjust for mobile header and navbar */
-                padding-left: 0;
-                padding-right: 0;
-            }
-
-            .content {
-                margin: 0.5rem;
-                padding: 1rem;
-            }
-
-            .form-select, .form-check {
-                max-width: 100%;
-            }
-
-            .status-box, .error-box, .success-box {
-                max-width: 100%;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/recaptcha.css">
+     <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+     <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/settings_navbar.css">
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
             <!-- Admin Sidebar -->
-            <?php include 'C:\xampp\htdocs\Sahtout\includes\admin_sidebar.php'; ?>
+            <?php include $project_root . 'includes/admin_sidebar.php'; ?>
             
             <!-- Main Content with Settings Navbar -->
             <main class="col-md-10 main-content">
-                <?php include 'C:\xampp\htdocs\Sahtout\pages\admin\settings\settings_navbar.php'; ?>
+                <?php include $project_root . 'pages/admin/settings/settings_navbar.php'; ?>
                 <div class="content">
                     <h2><?php echo translate('settings_recaptcha', 'reCAPTCHA Settings'); ?></h2>
                     
@@ -347,18 +148,18 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
                                 </div>
 
                                 <div class="mb-3 form-check">
-                                    <input type="checkbox" id="recaptcha_enabled" name="recaptcha_enabled" class="form-check-input" <?php echo isset($_POST['recaptcha_enabled']) ? 'checked' : ''; ?>>
+                                    <input type="checkbox" id="recaptcha_enabled" name="recaptcha_enabled" class="form-check-input" <?php echo isset($_POST['recaptcha_enabled']) || $recaptcha_status === 'enabled' ? 'checked' : ''; ?>>
                                     <label for="recaptcha_enabled" class="form-check-label"><?php echo translate('label_recaptcha_enabled', 'Enable reCAPTCHA'); ?></label>
                                 </div>
 
-                                <div class="recaptcha-fields <?php echo isset($_POST['recaptcha_enabled']) ? 'active' : ''; ?>">
+                                <div class="recaptcha-fields <?php echo (isset($_POST['recaptcha_enabled']) || $recaptcha_status === 'enabled') ? 'active' : ''; ?>">
                                     <div class="mb-3">
                                         <label for="recaptcha_site_key" class="form-label"><?php echo translate('label_recaptcha_site_key', 'Site Key'); ?></label>
-                                        <input type="text" id="recaptcha_site_key" name="recaptcha_site_key" class="form-control" placeholder="<?php echo translate('placeholder_recaptcha_default', 'Leave empty for default'); ?>" value="<?php echo htmlspecialchars($_POST['recaptcha_site_key'] ?? ''); ?>">
+                                        <input type="text" id="recaptcha_site_key" name="recaptcha_site_key" class="form-control" placeholder="<?php echo translate('placeholder_recaptcha_default', 'Leave empty for default'); ?>" value="<?php echo htmlspecialchars($_POST['recaptcha_site_key'] ?? (defined('RECAPTCHA_SITE_KEY') ? RECAPTCHA_SITE_KEY : '')); ?>">
                                     </div>
                                     <div class="mb-3">
                                         <label for="recaptcha_secret_key" class="form-label"><?php echo translate('label_recaptcha_secret_key', 'Secret Key'); ?></label>
-                                        <input type="text" id="recaptcha_secret_key" name="recaptcha_secret_key" class="form-control" placeholder="<?php echo translate('placeholder_recaptcha_default', 'Leave empty for default'); ?>" value="<?php echo htmlspecialchars($_POST['recaptcha_secret_key'] ?? ''); ?>">
+                                        <input type="text" id="recaptcha_secret_key" name="recaptcha_secret_key" class="form-control" placeholder="<?php echo translate('placeholder_recaptcha_default', 'Leave empty for default'); ?>" value="<?php echo htmlspecialchars($_POST['recaptcha_secret_key'] ?? (defined('RECAPTCHA_SECRET_KEY') ? RECAPTCHA_SECRET_KEY : '')); ?>">
                                     </div>
                                     <p class="note"><?php echo translate('note_recaptcha_empty', 'Leave reCAPTCHA fields empty to use default keys when enabled'); ?></p>
                                 </div>
@@ -367,15 +168,11 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
                             </div>
                         </form>
                     </div>
-                    <script>
-                        document.getElementById('recaptcha_enabled').addEventListener('change', function() {
-                            document.querySelector('.recaptcha-fields').classList.toggle('active', this.checked);
-                        });
-                    </script>
+                   <script src="<?php echo $base_path; ?>assets/js/pages/admin/settings/recaptcha.js"></script>
                 </div>
             </main>
         </div>
     </div>
-    <?php include_once 'C:\xampp\htdocs\Sahtout\includes\footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

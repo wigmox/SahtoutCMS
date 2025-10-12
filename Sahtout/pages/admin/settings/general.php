@@ -1,16 +1,18 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once dirname(__DIR__, 3) . '/includes/session.php';
-require_once dirname(__DIR__, 3) . '/languages/language.php';
-require_once dirname(__DIR__, 3) . '/includes/config.settings.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
+require_once $project_root . 'includes/config.settings.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
 $page_class = 'general';
-require_once dirname(__DIR__, 3) . '/includes/header.php';
+require_once $project_root . 'includes/header.php';
 ?>
 
 <!DOCTYPE html>
@@ -26,135 +28,15 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        body{
-            background-color: #212529;
-        }
-        .main-content {
-            padding-top: 80px;
-            min-height: calc(100vh - 80px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .content {
-            padding: 1.5rem;
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            margin: 1rem;
-            color: #212529;
-            text-align: center;
-            flex-grow: 1;
-        }
-        .status-box, .error-box, .success-box {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            text-align: left;
-        }
-        .status-box {
-            background: #e9ecef;
-            border: 1px solid #ced4da;
-        }
-        .error-box {
-            background: #f8d7da;
-            border: 1px solid #f5c2c7;
-        }
-        .success-box {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-        }
-        .db-status {
-            display: flex;
-            align-items: center;
-            margin: 0.5rem 0;
-        }
-        .db-status-icon {
-            margin-right: 0.5rem;
-            font-size: 1.1rem;
-        }
-        .db-status-success {
-            color: #28a745;
-        }
-        .db-status-error {
-            color: #dc3545;
-        }
-        .error {
-            color: #dc3545;
-            font-weight: 500;
-        }
-        .success {
-            color: #28a745;
-            font-weight: 500;
-        }
-        .input-group-text.social-icon {
-            width: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #212529;
-            background-color: #f8f9fa;
-        }
-        .social-icon i {
-            font-size: 20px;
-        }
-        .social-icon .kick-icon1 {
-            width: 20px;
-            height: 12px;
-            filter: none;
-        }
-        /* Custom file input styling */
-        .custom-file-upload {
-            display: inline-block;
-            width: 100%;
-            text-align: left;
-        }
-        .custom-file-upload input[type="file"] {
-            display: none;
-        }
-        .custom-file-upload .btn {
-            width: 200px;
-            display: flex;
-            margin: auto;
-            justify-content: center;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-            border: 1px solid #ced4da;
-            color: #ffffffff;
-            background-color: #0b71e6ff;
-            transition: all 0.3s ease;
-        }
-        .custom-file-upload .btn:hover {
-            font-family: 'Roboto', Arial, sans-serif;
-            font-size: 0.95rem;
-        }
-        .custom-file-upload .file-name {
-            margin-top: 0.5rem;
-            text-align: center;
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        @media (max-width: 768px) {
-            .main-content {
-                padding-top: 60px;
-                padding-left: 0;
-                padding-right: 0;
-            }
-            .content {
-                margin: 0.5rem;
-                padding: 1rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/general.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/settings_navbar.css">
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
             <!-- Admin Sidebar -->
-            <?php include dirname(__DIR__, 3) . '/includes/admin_sidebar.php'; ?>
-            
+            <?php include $project_root . 'includes/admin_sidebar.php'; ?>
             <!-- Main Content with Settings Navbar -->
             <main class="col-md-10 main-content">
                 <?php include dirname(__DIR__) . '/settings/settings_navbar.php'; ?>
@@ -179,7 +61,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
 
                     <!-- General Settings Form -->
                     <div class="row justify-content-center">
-                        <form action="/Sahtout/pages/admin/settings/save_general.php" method="POST" enctype="multipart/form-data" class="col-md-6">
+                        <form action="<?php echo $base_path; ?>pages/admin/settings/save_general.php" method="POST" enctype="multipart/form-data" class="col-md-6">
                             <!-- CSRF Token -->
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <!-- Max File Size (3MB) -->
@@ -189,7 +71,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
                             <div class="mb-3">
                                 <label for="logo" class="form-label"><?php echo translate('label_website_logo', 'Website Logo'); ?></label>
                                 <div class="mb-2">
-                                    <img src="<?php echo $site_logo; ?>" alt="<?php echo translate('label_website_logo', 'Website Logo'); ?>" class="img-fluid" style="max-width: 150px;">
+                                    <img src="<?php echo htmlspecialchars($site_logo); ?>" alt="<?php echo translate('label_website_logo', 'Website Logo'); ?>" class="img-fluid" style="max-width: 150px;">
                                 </div>
                                 <div class="custom-file-upload">
                                     <input type="file" id="logo" name="logo" accept="image/png,image/svg+xml,image/jpeg">
@@ -203,7 +85,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
                                 <label class="form-label"><?php echo translate('label_social_media', 'Social Media Links'); ?></label>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-facebook-f"></i></span>
-                                    <input type="url" name="facebook" class="form-control" placeholder="<?php echo translate('placeholder_facebook', 'Facebook URL'); ?>" value="<?php echo htmlspecialchars($social_links['facebook']); ?>">
+                                    <input type="url" name="facebook" class="form-control" placeholder="<?php echo translate('placeholder_facebook', 'Facebook URL'); ?>" value="<?php echo htmlspecialchars($social_links['facebook'] ?? ''); ?>">
                                 </div>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-x-twitter"></i></span>
@@ -215,31 +97,31 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
                                 </div>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-youtube"></i></span>
-                                    <input type="url" name="youtube" class="form-control" placeholder="<?php echo translate('placeholder_youtube', 'YouTube URL'); ?>" value="<?php echo htmlspecialchars($social_links['youtube']); ?>">
+                                    <input type="url" name="youtube" class="form-control" placeholder="<?php echo translate('placeholder_youtube', 'YouTube URL'); ?>" value="<?php echo htmlspecialchars($social_links['youtube'] ?? ''); ?>">
                                 </div>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-discord"></i></span>
-                                    <input type="url" name="discord" class="form-control" placeholder="<?php echo translate('placeholder_discord', 'Discord Invite URL'); ?>" value="<?php echo htmlspecialchars($social_links['discord']); ?>">
+                                    <input type="url" name="discord" class="form-control" placeholder="<?php echo translate('placeholder_discord', 'Discord Invite URL'); ?>" value="<?php echo htmlspecialchars($social_links['discord'] ?? ''); ?>">
                                 </div>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-twitch"></i></span>
-                                    <input type="url" name="twitch" class="form-control" placeholder="<?php echo translate('placeholder_twitch', 'Twitch URL'); ?>" value="<?php echo htmlspecialchars($social_links['twitch']); ?>">
+                                    <input type="url" name="twitch" class="form-control" placeholder="<?php echo translate('placeholder_twitch', 'Twitch URL'); ?>" value="<?php echo htmlspecialchars($social_links['twitch'] ?? ''); ?>">
                                 </div>
                                 <div class="input-group mb-2">
-                                    <span class="input-group-text social-icon"><img src="/Sahtout/img/icons/kick-logo.png" alt="Kick" class="kick-icon1"></span>
-                                    <input type="url" name="kick" class="form-control" placeholder="<?php echo translate('placeholder_kick', 'Kick URL'); ?>" value="<?php echo htmlspecialchars($social_links['kick']); ?>">
+                                    <span class="input-group-text social-icon"><img src="<?php echo $base_path; ?>img/icons/kick-logo.png" alt="Kick" class="kick-icon1"></span>
+                                    <input type="url" name="kick" class="form-control" placeholder="<?php echo translate('placeholder_kick', 'Kick URL'); ?>" value="<?php echo htmlspecialchars($social_links['kick'] ?? ''); ?>">
                                 </div>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-instagram"></i></span>
-                                    <input type="url" name="instagram" class="form-control" placeholder="<?php echo translate('placeholder_instagram', 'Instagram URL'); ?>" value="<?php echo htmlspecialchars($social_links['instagram']); ?>">
+                                    <input type="url" name="instagram" class="form-control" placeholder="<?php echo translate('placeholder_instagram', 'Instagram URL'); ?>" value="<?php echo htmlspecialchars($social_links['instagram'] ?? ''); ?>">
                                 </div>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-github"></i></span>
-                                    <input type="url" name="github" class="form-control" placeholder="<?php echo translate('placeholder_github', 'GitHub URL'); ?>" value="<?php echo htmlspecialchars($social_links['github']); ?>">
+                                    <input type="url" name="github" class="form-control" placeholder="<?php echo translate('placeholder_github', 'GitHub URL'); ?>" value="<?php echo htmlspecialchars($social_links['github'] ?? ''); ?>">
                                 </div>
                                 <div class="input-group mb-2">
                                     <span class="input-group-text social-icon"><i class="fab fa-linkedin-in"></i></span>
-                                    <input type="url" name="linkedin" class="form-control" placeholder="<?php echo translate('placeholder_linkedin', 'LinkedIn URL'); ?>" value="<?php echo htmlspecialchars($social_links['linkedin']); ?>">
+                                    <input type="url" name="linkedin" class="form-control" placeholder="<?php echo translate('placeholder_linkedin', 'LinkedIn URL'); ?>" value="<?php echo htmlspecialchars($social_links['linkedin'] ?? ''); ?>">
                                 </div>
                             </div>
 
@@ -251,7 +133,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
             </main>
         </div>
     </div>
-    <?php require_once dirname(__DIR__, 3) . '/includes/footer.php'; ?>
+    <?php require_once $project_root . 'includes/footer.php'; ?>
     <script>
         // Update file name display when a file is selected
         document.getElementById('logo').addEventListener('change', function() {

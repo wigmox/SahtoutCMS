@@ -1,5 +1,6 @@
 <?php
 define('ALLOWED_ACCESS', true);
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 include __DIR__ . '/header.inc.php';
 
 // Check required config files
@@ -51,7 +52,7 @@ foreach ($configFiles as $name => $path) {
                 <p class="success">✔ <?= translate('finish_all_present', 'All configuration files are present!') ?></p>
                 <p><?= translate('finish_congrats', 'Congratulations, SahtoutCMS is fully installed and ready to use.') ?></p>
                 <p><?= translate('finish_security_note', 'For security, it is strongly recommended to <strong>delete the "install" folder</strong> from your server.') ?></p>
-                <a href="../" class="btn"><?= translate('btn_go_to_homepage', 'Go to SahtoutCMS Homepage') ?></a>
+                <a href="<?php echo $base_path; ?>" class="btn"><?= translate('btn_go_to_homepage', 'Go to SahtoutCMS Homepage') ?></a>
             <?php endif; ?>
         </div>
     </div>

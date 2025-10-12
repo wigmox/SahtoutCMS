@@ -1,22 +1,24 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once dirname(__DIR__, 3) . '/includes/session.php';
-require_once dirname(__DIR__, 3) . '/languages/language.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
     $_SESSION['debug_errors'] = [translate('error_access_denied', 'Access denied.')];
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
 // Validate CSRF token
 if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
     $_SESSION['debug_errors'] = [translate('error_csrf_invalid', 'Invalid CSRF token.')];
-    header('Location: /Sahtout/admin/settings/general?status=error&message=' . urlencode(translate('error_csrf_invalid', 'Invalid CSRF token.')));
+    header("Location: {$base_path}admin/settings/general?status=error&message=" . urlencode(translate('error_csrf_invalid', 'Invalid CSRF token.')));
     exit;
 }
 
-require_once dirname(__DIR__, 3) . '/includes/config.settings.php';
+require_once $project_root . 'includes/config.settings.php';
 
 // Initialize variables
 $errors = [];
@@ -52,7 +54,7 @@ if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
         $errors[] = translate('error_invalid_file_type', 'Invalid SVG file. MIME type must be image/svg+xml.');
     }
     else {
-        $upload_dir = dirname(__DIR__, 3) . '/img/';
+        $upload_dir = $project_root . 'img/';
         if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
             $errors[] = translate('error_file_upload_failed', 'Upload directory is not accessible or writable.');
         } else {
@@ -111,7 +113,7 @@ foreach ($social_links_new as $platform => $url) {
 
 // Update config.settings.php
 if (empty($errors)) {
-    $config_file = dirname(__DIR__, 3) . '/includes/config.settings.php';
+    $config_file = $project_root . 'includes/config.settings.php';
     if (!is_writable($config_file)) {
         $errors[] = translate('error_file_write_failed', 'Configuration file is not writable.');
     } else {
@@ -141,7 +143,7 @@ if (empty($errors)) {
 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
 // Redirect with feedback
-$redirect_url = '/Sahtout/admin/settings/general';
+$redirect_url = "{$base_path}admin/settings/general";
 if ($success) {
     header("Location: $redirect_url?status=success");
 } else {

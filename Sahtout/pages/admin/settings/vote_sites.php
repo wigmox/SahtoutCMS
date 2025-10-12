@@ -1,8 +1,10 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once dirname(__DIR__, 3) . '/includes/session.php';
-require_once dirname(__DIR__, 3) . '/languages/language.php';
-require_once dirname(__DIR__, 3) . '/includes/config.settings.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
+require_once $project_root . 'includes/config.settings.php';
 
 // Redirect helper function
 function redirect_with_params(string $base, array $params = []) {
@@ -13,7 +15,7 @@ function redirect_with_params(string $base, array $params = []) {
 
 // Handle session check and redirect before any output
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    redirect_with_params('/Sahtout/login');
+    redirect_with_params("{$base_path}login");
 }
 
 // Initialize variables
@@ -35,7 +37,7 @@ $message = '';
 
 // Log form submissions for debugging
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $log_dir = dirname(__DIR__) . '/pingback';
+    $log_dir = $project_root . 'pages/pingback';
     $log_file = $log_dir . '/debug.log';
     if (!is_dir($log_dir)) {
         mkdir($log_dir, 0755, true);
@@ -64,7 +66,7 @@ if (isset($_GET['delete_image']) && is_numeric($_GET['delete_image'])) {
                 if ($result->num_rows > 0) {
                     $row = $result->fetch_assoc();
                     if ($row['button_image_url'] && strpos($row['button_image_url'], '/Sahtout/') === 0) {
-                        $image_path = dirname(__DIR__, 3) . parse_url($row['button_image_url'], PHP_URL_PATH);
+                        $image_path = $project_root . parse_url($row['button_image_url'], PHP_URL_PATH);
                         if (file_exists($image_path)) {
                             unlink($image_path);
                         }
@@ -87,7 +89,7 @@ if (isset($_GET['delete_image']) && is_numeric($_GET['delete_image'])) {
     } catch (Exception $e) {
         $errors[] = translate('err_database', 'Database error: ') . $e->getMessage();
     }
-    redirect_with_params('/Sahtout/admin/settings/vote_sites', $errors ? ['id' => $site_id, 'status' => 'error', 'message' => implode(', ', $errors)] : ['id' => $site_id, 'status' => 'success', 'message' => $message]);
+    redirect_with_params("{$base_path}admin/settings/vote_sites", $errors ? ['id' => $site_id, 'status' => 'error', 'message' => implode(', ', $errors)] : ['id' => $site_id, 'status' => 'success', 'message' => $message]);
 }
 
 // Handle Delete Site
@@ -107,7 +109,7 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
                 if ($result->num_rows > 0) {
                     $row = $result->fetch_assoc();
                     if ($row['button_image_url'] && strpos($row['button_image_url'], '/Sahtout/') === 0) {
-                        $image_path = dirname(__DIR__, 3) . parse_url($row['button_image_url'], PHP_URL_PATH);
+                        $image_path = $project_root . parse_url($row['button_image_url'], PHP_URL_PATH);
                         if (file_exists($image_path)) {
                             unlink($image_path);
                         }
@@ -128,7 +130,7 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     } catch (Exception $e) {
         $errors[] = translate('err_database', 'Database error: ') . $e->getMessage();
     }
-    redirect_with_params('/Sahtout/admin/settings/vote_sites', $errors ? ['status' => 'error', 'message' => implode(', ', $errors)] : ['status' => 'success', 'message' => $message]);
+    redirect_with_params("{$base_path}admin/settings/vote_sites", $errors ? ['status' => 'error', 'message' => implode(', ', $errors)] : ['status' => 'success', 'message' => $message]);
 }
 
 // Handle Form Submission (Create/Update)
@@ -181,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle file upload
         if (isset($_FILES['button_image']) && $_FILES['button_image']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $upload_dir = dirname(__DIR__, 3) . '/img/voteimg/';
+            $upload_dir = $project_root . 'img/voteimg/';
             $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
             $max_size = 1 * 1024 * 1024; // 1MB
             if (!is_dir($upload_dir)) {
@@ -215,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($result->num_rows > 0) {
                             $row = $result->fetch_assoc();
                             if ($row['button_image_url'] && strpos($row['button_image_url'], '/Sahtout/') === 0) {
-                                $image_path = dirname(__DIR__, 3) . parse_url($row['button_image_url'], PHP_URL_PATH);
+                                $image_path = $project_root . parse_url($row['button_image_url'], PHP_URL_PATH);
                                 if (file_exists($image_path)) {
                                     unlink($image_path);
                                 }
@@ -240,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($result->num_rows > 0) {
                     $row = $result->fetch_assoc();
                     if ($row['button_image_url'] && strpos($row['button_image_url'], '/Sahtout/') === 0) {
-                        $image_path = dirname(__DIR__, 3) . parse_url($row['button_image_url'], PHP_URL_PATH);
+                        $image_path = $project_root . parse_url($row['button_image_url'], PHP_URL_PATH);
                         if (file_exists($image_path)) {
                             unlink($image_path);
                         }
@@ -257,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($result->num_rows > 0) {
                     $row = $result->fetch_assoc();
                     if ($row['button_image_url'] && strpos($row['button_image_url'], '/Sahtout/') === 0) {
-                        $image_path = dirname(__DIR__, 3) . parse_url($row['button_image_url'], PHP_URL_PATH);
+                        $image_path = $project_root . parse_url($row['button_image_url'], PHP_URL_PATH);
                         if (file_exists($image_path)) {
                             unlink($image_path);
                         }
@@ -327,7 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'callback_secret' => $callback_secret
             ];
         }
-        redirect_with_params('/Sahtout/admin/settings/vote_sites', $site_id ? ['id' => $site_id] + ($errors ? ['status' => 'error', 'message' => implode(', ', $errors)] : ['status' => 'success', 'message' => $message]) : ($errors ? ['status' => 'error', 'message' => implode(', ', $errors)] : ['status' => 'success', 'message' => $message]));
+        redirect_with_params("{$base_path}admin/settings/vote_sites", $site_id ? ['id' => $site_id] + ($errors ? ['status' => 'error', 'message' => implode(', ', $errors)] : ['status' => 'success', 'message' => $message]) : ($errors ? ['status' => 'error', 'message' => implode(', ', $errors)] : ['status' => 'success', 'message' => $message]));
     }
 }
 
@@ -367,7 +369,7 @@ try {
 
 // Include header after all redirect logic
 $page_class = 'vote-sites';
-require_once dirname(__DIR__, 3) . '/includes/header.php';
+require_once $project_root . 'includes/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($langCode); ?>">
@@ -379,207 +381,17 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        body {
-            background-color: #212529;
-        }
-        .main-content {
-            padding-top: 80px;
-            min-height: calc(100vh - 80px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .content {
-            padding: 1.5rem;
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            margin: 1rem;
-            color: #212529;
-            text-align: center;
-            flex-grow: 1;
-        }
-        .status-box, .error-box, .success-box {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            text-align: left;
-        }
-        .status-box {
-            background: #e9ecef;
-            border: 1px solid #ced4da;
-        }
-        .error-box {
-            background: #f8d7da;
-            border: 1px solid #f5c2c7;
-        }
-        .success-box {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-        }
-        .db-status {
-            display: flex;
-            align-items: center;
-            margin: 0.5rem 0;
-        }
-        .db-status-icon {
-            margin-right: 0.5rem;
-            font-size: 1.1rem;
-        }
-        .db-status-success {
-            color: #28a745;
-        }
-        .db-status-error {
-            color: #dc3545;
-        }
-        .error {
-            color: #dc3545;
-            font-weight: 500;
-        }
-        .success {
-            color: #28a745;
-            font-weight: 500;
-        }
-        .form-control {
-            max-width: 380px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .compact-input {
-            text-align: center;
-        }
-        .custom-file-upload {
-            display: inline-block;
-            width: 100%;
-            text-align: left;
-        }
-        .custom-file-upload input[type="file"] {
-            display: none;
-        }
-        .custom-file-upload .btn {
-            width: 200px;
-            display: flex;
-            margin: auto;
-            justify-content: center;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 0.25rem;
-            border: 1px solid #ced4da;
-            color: #ffffffff;
-            background-color: #0b71e6ff;
-            transition: all 0.3s ease;
-        }
-        .custom-file-upload .btn:hover {
-            font-family: 'Roboto', Arial, sans-serif;
-            font-size: 0.95rem;
-        }
-        .custom-file-upload .file-name {
-            margin-top: 0.5rem;
-            text-align: center;
-            color: #6c757d;
-            font-size: 0.9rem;
-        }
-        :root {
-            --accent: #f0c14b;
-            --dark: #151515;
-            --light: #f8f8f8;
-        }
-        .table {
-            background: rgba(20, 20, 20, 0.95);
-            border: 1px solid var(--accent);
-            color: var(--light);
-        }
-        .table th {
-            background: #333;
-            color: var(--light);
-            font-family: 'Roboto', sans-serif;
-            font-weight: 500;
-        }
-        .table td {
-            vertical-align: middle;
-            padding: 0.5rem;
-        }
-        .table img {
-            max-width: 100px;
-            height: auto;
-            border-radius: 4px;
-        }
-        .table .btn {
-            margin: 0 3px;
-            transition: all 0.3s ease;
-        }
-        .btn-primary {
-            background-color: #0b71e6;
-            border: none;
-            font-weight: 500;
-            padding: 0.4rem 0.8rem;
-            font-size: 0.9rem;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            transform: translateY(-2px);
-            box-shadow: 0 3px 8px rgba(74, 144, 226, 0.5);
-        }
-        .btn-danger {
-            background: linear-gradient(to right, #dc3545, #a71d2a);
-            border: none;
-            padding: 0.4rem 0.8rem;
-            font-size: 0.9rem;
-        }
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.5);
-        }
-        .btn-reset {
-            background-color: #6c757d;
-            border: none;
-            font-weight: 500;
-            padding: 0.4rem 0.8rem;
-            font-size: 0.9rem;
-        }
-        .btn-reset:hover {
-            background-color: #5a6268;
-            transform: translateY(-2px);
-            box-shadow: 0 3px 8px rgba(108, 117, 125, 0.5);
-        }
-        @media (max-width: 768px) {
-            .main-content {
-                padding-top: 60px;
-                padding-left: 0;
-                padding-right: 0;
-            }
-            .content {
-                margin: 0.5rem;
-                padding: 1rem;
-            }
-            .form-control {
-                max-width: 300px;
-            }
-            .table-responsive {
-                font-size: 0.8rem;
-            }
-            .table td {
-                padding: 0.3rem;
-            }
-            .table img {
-                max-width: 50px;
-                height: auto;
-            }
-            .table .btn {
-                margin: 1px 2px;
-                padding: 0.2rem 0.4rem;
-                font-size: 0.7rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/vote_sites.css">
+     <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+     <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/settings_navbar.css">
+    
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <?php include dirname(__DIR__, 3) . '/includes/admin_sidebar.php'; ?>
+            <?php include $project_root . 'includes/admin_sidebar.php'; ?>
             <main class="col-md-10 main-content">
-                <?php include dirname(__DIR__) . '/settings/settings_navbar.php'; ?>
+                <?php include $project_root . 'pages/admin/settings/settings_navbar.php'; ?>
                 <div class="content">
                     <h2><?php echo translate('page_title_manage_vote_sites', 'Manage Vote Sites'); ?></h2>
                     <?php if ($status === 'success' || (isset($_GET['status']) && $_GET['status'] === 'success')): ?>
@@ -606,7 +418,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
                         </div>
                     <?php endif; ?>
                     <div class="row justify-content-center mb-4">
-                        <form action="/Sahtout/admin/settings/vote_sites" method="POST" enctype="multipart/form-data" class="col-md-6">
+                        <form action="<?php echo $base_path; ?>admin/settings/vote_sites" method="POST" enctype="multipart/form-data" class="col-md-6">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                             <input type="hidden" name="site_id" value="<?php echo $site_id; ?>">
                             <input type="hidden" name="MAX_FILE_SIZE" value="1048576">
@@ -635,7 +447,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
                                     <div class="mb-2">
                                         <img src="<?php echo htmlspecialchars($site_data['button_image_url']); ?>" alt="<?php echo translate('label_button_image', 'Button Image'); ?>" class="img-fluid" style="max-width: 150px;">
                                     </div>
-                                    <a href="/Sahtout/admin/settings/vote_sites?delete_image=<?php echo $site_id; ?>&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"
+                                    <a href="<?php echo $base_path; ?>admin/settings/vote_sites?delete_image=<?php echo $site_id; ?>&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"
                                        class="btn btn-danger mb-2"
                                        onclick="return confirm('<?php echo translate('confirm_delete_image', 'Are you sure you want to delete this image?'); ?>');">
                                        <i class="fas fa-trash"></i> <?php echo translate('btn_delete_image', 'Delete Image'); ?>
@@ -673,7 +485,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
                             </div>
                             <button type="submit" class="btn btn-primary"><?php echo translate('btn_save_vote_site', 'Save Vote Site'); ?></button>
                             <?php if ($site_id > 0): ?>
-                                <a href="/Sahtout/admin/settings/vote_sites" class="btn btn-reset"><?php echo translate('btn_reset', 'Reset Form'); ?></a>
+                                <a href="<?php echo $base_path; ?>admin/settings/vote_sites" class="btn btn-reset"><?php echo translate('btn_reset', 'Reset Form'); ?></a>
                             <?php endif; ?>
                         </form>
                     </div>
@@ -715,11 +527,11 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
                                             <td><?php echo htmlspecialchars($site['reward_points']); ?></td>
                                             <td><?php echo $site['uses_callback'] ? translate('option_yes', 'Yes') : translate('option_no', 'No'); ?></td>
                                             <td>
-                                                <a href="/Sahtout/admin/settings/vote_sites?id=<?php echo $site['id']; ?>"
+                                                <a href="<?php echo $base_path; ?>admin/settings/vote_sites?id=<?php echo $site['id']; ?>"
                                                    class="btn btn-primary px-3 py-2">
                                                    <i class="fas fa-edit"></i> <?php echo translate('btn_edit', 'Edit'); ?>
                                                 </a>
-                                                <a href="/Sahtout/admin/settings/vote_sites?delete=<?php echo $site['id']; ?>&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"
+                                                <a href="<?php echo $base_path; ?>admin/settings/vote_sites?delete=<?php echo $site['id']; ?>&csrf_token=<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>"
                                                    class="btn btn-sm btn-danger"
                                                    onclick="return confirm('<?php echo translate('confirm_delete', 'Are you sure you want to delete this vote site?'); ?>');">
                                                    <i class="fas fa-trash"></i> <?php echo translate('btn_delete', 'Delete'); ?>
@@ -735,7 +547,7 @@ require_once dirname(__DIR__, 3) . '/includes/header.php';
             </main>
         </div>
     </div>
-    <?php require_once dirname(__DIR__, 3) . '/includes/footer.php'; ?>
+    <?php require_once $project_root . 'includes/footer.php'; ?>
     <script>
         document.getElementById('button_image').addEventListener('change', function() {
             const fileName = this.files.length > 0 ? this.files[0].name : '<?php echo translate('placeholder_button_image', 'Upload a JPEG, PNG, or GIF image (max 1MB).'); ?>';

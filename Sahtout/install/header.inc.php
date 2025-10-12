@@ -3,6 +3,7 @@ if (!defined('ALLOWED_ACCESS')) {
     header('HTTP/1.1 403 Forbidden');
     exit('Direct access to this file is not allowed.');
 }
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 include 'languages/language.php';
 // Ensure language.php is included
 if (!function_exists('translate')) {
@@ -30,7 +31,7 @@ $langNames = [
 ];
 
 // Current language data
-$currentFlag = "/Sahtout/languages/flags/{$langCode}.png";
+$currentFlag = $base_path . "languages/flags/{$langCode}.png";
 $currentLabel = htmlspecialchars($langNames[$langCode] ?? 'English');
 $currentFlagEsc = htmlspecialchars($currentFlag);
 ?>
@@ -144,7 +145,7 @@ $currentFlagEsc = htmlspecialchars($currentFlag);
     <div class="navbar">
         <!-- Logo and Title -->
         <div style="display: flex; align-items: center;">
-            <img src="logo.png" alt="<?= translate('logo_alt', 'Sahtout Logo') ?>">
+            <img src="<?php echo $base_path; ?>install/logo.png" alt="<?= translate('logo_alt', 'Sahtout Logo') ?>">
             <div class="title"><?= translate('installer_title', 'Sahtout CMS Installer') ?></div>
         </div>
         <!-- Language Dropdown -->
@@ -154,20 +155,20 @@ $currentFlagEsc = htmlspecialchars($currentFlag);
                 <span id="langLabel"><?= htmlspecialchars($currentLabel) ?></span>
             </div>
             <ul class="lang-options">
-                <li data-value="en" data-flag="/Sahtout/languages/flags/en.png">
-                    <img src="/Sahtout/languages/flags/en.png" alt="English"> English
+                <li data-value="en" data-flag="<?php echo $base_path; ?>languages/flags/en.png">
+                    <img src="<?php echo $base_path; ?>languages/flags/en.png" alt="English"> English
                 </li>
-                <li data-value="fr" data-flag="/Sahtout/languages/flags/fr.png">
-                    <img src="/Sahtout/languages/flags/fr.png" alt="Français"> Français
+                <li data-value="fr" data-flag="<?php echo $base_path; ?>languages/flags/fr.png">
+                    <img src="<?php echo $base_path; ?>languages/flags/fr.png" alt="Français"> Français
                 </li>
-                <li data-value="es" data-flag="/Sahtout/languages/flags/es.png">
-                    <img src="/Sahtout/languages/flags/es.png" alt="Español"> Español
+                <li data-value="es" data-flag="<?php echo $base_path; ?>languages/flags/es.png">
+                    <img src="<?php echo $base_path; ?>languages/flags/es.png" alt="Español"> Español
                 </li>
-                <li data-value="de" data-flag="/Sahtout/languages/flags/de.png">
-                    <img src="/Sahtout/languages/flags/de.png" alt="Deutsch"> Deutsch
+                <li data-value="de" data-flag="<?php echo $base_path; ?>languages/flags/de.png">
+                    <img src="<?php echo $base_path; ?>languages/flags/de.png" alt="Deutsch"> Deutsch
                 </li>
-                <li data-value="ru" data-flag="/Sahtout/languages/flags/ru.png">
-                    <img src="/Sahtout/languages/flags/ru.png" alt="Русский"> Русский
+                <li data-value="ru" data-flag="<?php echo $base_path; ?>languages/flags/ru.png">
+                    <img src="<?php echo $base_path; ?>languages/flags/ru.png" alt="Русский"> Русский
                 </li>
             </ul>
         </div>

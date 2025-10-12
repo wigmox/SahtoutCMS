@@ -1,18 +1,19 @@
 <?php
 define('ALLOWED_ACCESS', true);
 
-// Load session and language system
-require_once '../../includes/session.php';
-require_once '../../languages/language.php'; // This loads the translate() function
+// Load session, language, and paths
+require_once __DIR__ . '/../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php'; // This loads the translate() function
 
 // Restrict access to admin or moderator roles
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
 $page_class = 'gm_cmd';
-include dirname(__DIR__) . '../../includes/header.php';
+include $project_root . 'includes/header.php';
 
 $result = null; // Initialize result
 
@@ -20,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $command = trim($_POST['command']);
 
     if (!empty($command)) {
-        include dirname(__DIR__) . '../../includes/soap.conf.php';
+        include $project_root . 'includes/soap.conf.php';
 
         $xml = '<?xml version="1.0" encoding="utf-8"?>'
             . '<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">'
@@ -66,58 +67,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            color: #eee;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .d-flex { flex-wrap: wrap; }
-
-        /* Main content */
-        .main-content {
-            flex: 1;
-            padding: 20px;
-        }
-
-        /* Preformatted SOAP response */
-        pre {
-            padding: 15px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: #eee;
-            overflow-x: auto;
-        }
-
-        .form-container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .main-content {
-                padding: 10px;
-            }
-            .form-container {
-                max-width: 100%;
-                margin: 0 5px;
-            }
-            input[type="text"] {
-                width: 100%;
-                margin-bottom: 0.5rem;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/gm_cmd.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/footer.css">
 </head>
 <body>
     <div class="d-flex flex-grow-1">
         <!-- Sidebar/Navbar -->
-        <?php include dirname(__DIR__) . '../../includes/admin_sidebar.php'; ?>
+        <?php include $project_root . 'includes/admin_sidebar.php'; ?>
 
         <!-- Main Content -->
         <div class="main-content">
@@ -125,6 +82,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="row justify-content-center">
                     <div class="col-lg-8 form-container">
                         <h1 class="text-center mb-4"><?php echo translate('soap_title', 'Execute SOAP Command'); ?></h1>
+
+                        <!-- Instruction Box -->
+                        <div class="alert alert-info mb-4">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <?php echo translate(
+                                'gm_command_instructions', 
+                                'Enter your GM commands in the box below. For example: <code>.character level PlayerName 80</code>.'
+                            ); ?>
+                            <br>
+                            <?php echo translate(
+                                'gm_command_docs', 
+                                'For a full list of commands, check the <a href="https://www.azerothcore.org/wiki/gm-commands" target="_blank">AzerothCore GM Commands Wiki</a>.'
+                            ); ?>
+                        </div>
                         
                         <form method="post" class="mb-4">
                             <div class="input-group">
@@ -133,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     name="command" 
                                     class="form-control" 
                                     style="color: #000000ff; background:#eee" 
-                                    placeholder="<?php echo translate('command_placeholder', '.character name level 80'); ?>" 
+                                    placeholder="<?php echo translate('command_placeholder', '.character level PlayerName 80'); ?>" 
                                     required
                                 >
                                 <button type="submit" class="btn btn-primary">
@@ -159,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <!-- Footer -->
-    <?php include dirname(__DIR__) . '../../includes/footer.php'; ?>
+    <?php include $project_root . 'includes/footer.php'; ?>
 
     <!-- Bootstrap 5 JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

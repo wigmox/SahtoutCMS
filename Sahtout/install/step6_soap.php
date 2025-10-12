@@ -1,6 +1,7 @@
 <?php
 define('ALLOWED_ACCESS', true);
-include __DIR__ . '/header.inc.php';
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
+require_once __DIR__ . '/header.inc.php';
 require_once __DIR__ . '/../includes/config.php';
 
 $error = '';
@@ -79,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php elseif ($success): ?>
                 <p class="success">✔ <?= translate('msg_soap_saved', 'SOAP configuration saved! GM account verified.') ?></p>
                 <p><?= translate('msg_soap_note', 'Make sure its gm') ?></p>
-                <a href="finish" class="btn"><?= translate('btn_proceed_to_finish', 'Proceed to Finish Installation ➡️') ?></a>
+                <a href="<?php echo $base_path; ?>install/finish.php" class="btn"><?= translate('btn_proceed_to_finish', 'Proceed to Finish Installation ➡️') ?></a>
             <?php else: ?>
                 <form method="post">
                     <div class="section-title"><?= translate('section_soap_config', 'SOAP Configuration') ?></div>

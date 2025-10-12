@@ -1,10 +1,11 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once __DIR__ . '/../../includes/session.php';
-require_once __DIR__ . '/../../languages/language.php'; // Include translation system
+require_once __DIR__ . '/../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header("Location: /Sahtout/login");
+    header("Location: {$base_path}login");
     exit;
 }
 
@@ -33,7 +34,7 @@ if ($stmt->execute()) {
 $stmt->close();
 
 // Directory for image uploads
-$base_upload_dir = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'shopimg' . DIRECTORY_SEPARATOR;
+$base_upload_dir = $project_root . 'img/shopimg/';
 $base_upload_url = 'img/shopimg/';
 
 // Map categories to subdirectories
@@ -50,11 +51,11 @@ foreach ($category_dirs as $dir) {
     $full_dir = $base_upload_dir . $dir;
     if (!file_exists($full_dir)) {
         if (!mkdir($full_dir, 0755, true)) {
-            error_log("Failed to create directory: $full_dir", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+            error_log("Failed to create directory: $full_dir", 3, $project_root . 'logs/upload_errors.log');
         }
     }
     if (!is_writable($full_dir)) {
-        error_log("Directory not writable: $full_dir", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+        error_log("Directory not writable: $full_dir", 3, $project_root . 'logs/upload_errors.log');
         @chmod($full_dir, 0777);
     }
 }
@@ -81,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Validate category
             if (!in_array($category, $valid_categories)) {
-                header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_category', 'Invalid category')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_category', 'Invalid category')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                 exit;
             }
 
@@ -95,14 +96,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->fetch();
                 $stmt->close();
                 if ($count == 0) {
-                    header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_entry_id', 'Invalid entry ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_entry_id', 'Invalid entry ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 }
             }
 
             // Only validate level boost if category is Service
             if ($category === 'Service' && $level_boost !== null && ($level_boost < 2 || $level_boost > 255)) {
-                header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_level_boost', 'Level boost must be between 2 and 255')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_level_boost', 'Level boost must be between 2 and 255')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                 exit;
             }
 
@@ -113,8 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Check upload directory permissions
             if (!is_writable($upload_dir)) {
-                error_log("Upload directory not writable: $upload_dir", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_upload_dir_not_writable', 'Upload directory is not writable')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                error_log("Upload directory not writable: $upload_dir", 3, $project_root . 'logs/upload_errors.log');
+                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_upload_dir_not_writable', 'Upload directory is not writable')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                 exit;
             }
 
@@ -125,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $file = $_FILES['image'];
 
                 // Log file details for debugging
-                error_log("File upload attempt: name={$file['name']}, type={$file['type']}, size={$file['size']}, error={$file['error']}, tmp_name={$file['tmp_name']}, category=$category", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+                error_log("File upload attempt: name={$file['name']}, type={$file['type']}, size={$file['size']}, error={$file['error']}, tmp_name={$file['tmp_name']}, category=$category", 3, $project_root . 'logs/upload_errors.log');
 
                 if ($file['error'] !== UPLOAD_ERR_OK) {
                     $error_messages = [
@@ -138,26 +139,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         UPLOAD_ERR_EXTENSION => translate('admin_shop_upload_err_extension', 'A PHP extension stopped the upload')
                     ];
                     $error_message = isset($error_messages[$file['error']]) ? $error_messages[$file['error']] : translate('admin_shop_upload_err_unknown', 'Unknown upload error');
-                    error_log("Upload error: $error_message", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                    header("Location: ashop?status=error&message=" . urlencode($error_message) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    error_log("Upload error: $error_message", 3, $project_root . 'logs/upload_errors.log');
+                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($error_message) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 }
 
                 if (!in_array($file['type'], $allowed_types)) {
-                    error_log("Invalid file type: {$file['type']}", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                    header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_file_type', 'Invalid file type. Only JPG, PNG, GIF allowed')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    error_log("Invalid file type: {$file['type']}", 3, $project_root . 'logs/upload_errors.log');
+                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_file_type', 'Invalid file type. Only JPG, PNG, GIF allowed')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 }
                 if ($file['size'] > $max_size) {
-                    error_log("File size exceeds limit: {$file['size']} bytes", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                    header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_file_size_exceeded', 'File size exceeds 2MB limit')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    error_log("File size exceeds limit: {$file['size']} bytes", 3, $project_root . 'logs/upload_errors.log');
+                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_file_size_exceeded', 'File size exceeds 2MB limit')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 }
 
                 // Validate temporary file
                 if (!file_exists($file['tmp_name']) || !is_readable($file['tmp_name'])) {
-                    error_log("Temporary file missing or unreadable: {$file['tmp_name']}", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                    header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_tmp_file_missing', 'Temporary file is missing or unreadable')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    error_log("Temporary file missing or unreadable: {$file['tmp_name']}", 3, $project_root . 'logs/upload_errors.log');
+                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_tmp_file_missing', 'Temporary file is missing or unreadable')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 }
 
@@ -166,30 +167,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $destination = $upload_dir . $filename;
 
                 // Log destination path
-                error_log("Destination path: $destination", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+                error_log("Destination path: $destination", 3, $project_root . 'logs/upload_errors.log');
 
                 // Attempt to move the file
                 if (move_uploaded_file($file['tmp_name'], $destination)) {
                     // Verify file was actually written
                     if (file_exists($destination)) {
                         $image = $upload_url . $filename;
-                        error_log("File uploaded successfully: $image", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+                        error_log("File uploaded successfully: $image", 3, $project_root . 'logs/upload_errors.log');
                         // Delete old image if editing
                         if ($action === 'edit' && isset($_POST['existing_image']) && $_POST['existing_image']) {
                             $old_image_path = str_replace($base_upload_url, $base_upload_dir, $_POST['existing_image']);
                             if (file_exists($old_image_path)) {
                                 unlink($old_image_path);
-                                error_log("Deleted old image: $old_image_path", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+                                error_log("Deleted old image: $old_image_path", 3, $project_root . 'logs/upload_errors.log');
                             }
                         }
                     } else {
-                        error_log("File move reported success but file not found at: $destination", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                        header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_file_move_failed', 'File move succeeded but file not found')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                        error_log("File move reported success but file not found at: $destination", 3, $project_root . 'logs/upload_errors.log');
+                        header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_file_move_failed', 'File move succeeded but file not found')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                         exit;
                     }
                 } else {
-                    error_log("Failed to move uploaded file to: $destination, tmp_name exists: " . (file_exists($file['tmp_name']) ? 'Yes' : 'No'), 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                    header("Location: ashop?status=error&message=" . urlencode(translate('admin_shop_upload_failed', 'Failed to move uploaded file')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    error_log("Failed to move uploaded file to: $destination, tmp_name exists: " . (file_exists($file['tmp_name']) ? 'Yes' : 'No'), 3, $project_root . 'logs/upload_errors.log');
+                    header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_upload_failed', 'Failed to move uploaded file')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 }
             } elseif ($action === 'edit' && isset($_POST['existing_image'])) {
@@ -226,14 +227,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 
                 if ($stmt->execute()) {
-                    header("Location: ashop?status=success&message=" . urlencode(translate('admin_shop_operation_success', 'Operation successful!')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header("Location: {$base_path}admin/ashop?status=success&message=" . urlencode(translate('admin_shop_operation_success', 'Operation successful!')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 } else {
                     throw new Exception(sprintf(translate('admin_shop_db_error', 'Database error: %s'), $stmt->error));
                 }
             } catch (Exception $e) {
-                error_log("Database error: " . $e->getMessage(), 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                header("Location: ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                error_log("Database error: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
+                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                 exit;
             } finally {
                 if (isset($stmt)) $stmt->close();
@@ -252,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $file_path = str_replace($base_upload_url, $base_upload_dir, $row['image']);
                         if (file_exists($file_path)) {
                             unlink($file_path);
-                            error_log("Deleted image on item delete: $file_path", 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+                            error_log("Deleted image on item delete: $file_path", 3, $project_root . 'logs/upload_errors.log');
                         }
                     }
                 }
@@ -263,14 +264,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param("i", $item_id);
                 
                 if ($stmt->execute()) {
-                    header("Location: ashop?status=success&message=" . urlencode(translate('admin_shop_operation_success', 'Operation successful!')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                    header("Location: {$base_path}admin/ashop?status=success&message=" . urlencode(translate('admin_shop_operation_success', 'Operation successful!')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                     exit;
                 } else {
                     throw new Exception(sprintf(translate('admin_shop_db_error', 'Database error: %s'), $stmt->error));
                 }
             } catch (Exception $e) {
-                error_log("Delete error: " . $e->getMessage(), 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
-                header("Location: ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
+                error_log("Delete error: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
+                header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                 exit;
             } finally {
                 if (isset($stmt)) $stmt->close();
@@ -310,7 +311,7 @@ try {
     }
     $count_stmt->close();
 } catch (Exception $e) {
-    error_log("Error counting shop items: " . $e->getMessage(), 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+    error_log("Error counting shop items: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
 }
 
 // Fetch shop items for current page
@@ -346,7 +347,7 @@ try {
         $items[] = $row;
     }
 } catch (Exception $e) {
-    error_log("Error fetching shop items: " . $e->getMessage(), 3, __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'upload_errors.log');
+    error_log("Error fetching shop items: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
 } finally {
     if (isset($stmt)) $stmt->close();
 }
@@ -371,228 +372,18 @@ if (isset($_GET['status'])) {
     <meta name="robots" content="noindex">
     <title><?php echo translate('admin_shop_page_title', 'Shop Management - Admin Panel'); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/Sahtout/assets/css/footer.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/ashop.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/footer.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <style>
-        html, body {
-            height: 100%;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-        }
-        body {
-            background-color: #ffffff;
-            color: #333;
-            font-family: Arial, sans-serif;
-        }
-        .wrapper {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        .dashboard-container {
-            flex-grow: 1;
-            padding-bottom: 20px;
-        }
-        .dashboard-title {
-            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-            font-size: 2.5rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-            color: #333;
-        }
-        .card {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #ccc;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .card-header {
-            background: rgba(230, 230, 230, 0.9);
-            border-bottom: 1px solid #ccc;
-            color: #333;
-            font-size: 1.25rem;
-            padding: 0.75rem 1rem;
-        }
-        .card-body {
-            padding: 1rem;
-        }
-        .table {
-            color: #333;
-            background: none;
-            width: 100%;
-        }
-        .table th, .table td {
-            border: 1px solid #ccc;
-            padding: 0.5rem;
-            vertical-align: middle;
-            transition: all 0.3s ease;
-        }
-        .table th {
-            background: rgba(240, 240, 240, 0.9);
-            color: #000;
-        }
-        .table tbody tr:hover {
-            background: rgba(200, 200, 200, 0.2);
-            cursor: pointer;
-        }
-        .table tbody tr:hover td {
-            color: #000;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .table .btn {
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            margin-right: 0.5rem;
-        }
-        .table .btn-edit {
-            background: #007bff;
-            border: 2px solid #0056b3;
-            color: #fff;
-        }
-        .table .btn-edit:hover {
-            background: #0056b3;
-            border-color: #003087;
-        }
-        .table .btn-danger {
-            background: #dc3545;
-            border: 2px solid #a71d2a;
-            color: #fff;
-        }
-        .table .btn-danger:hover {
-            background: #a71d2a;
-            border-color: #721c24;
-        }
-        .form-control, .form-select {
-            background: #f9f9f9;
-            color: #333;
-            border: 1px solid #999;
-        }
-        .form-control:focus, .form-select:focus {
-            background: #fff;
-            color: #000;
-            border-color: #666;
-            box-shadow: none;
-        }
-        .form-control::placeholder {
-            color: #666;
-            font-weight: bold;
-            opacity: 1;
-        }
-        .form-label {
-            color: #333;
-        }
-        .btn-primary {
-            background: #007bff;
-            border: 2px solid #0056b3;
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: #0056b3;
-            border-color: #003087;
-        }
-        .btn-secondary {
-            background: #6c757d;
-            border: 2px solid #5a6268;
-            color: #fff;
-        }
-        .btn-secondary:hover {
-            background: #5a6268;
-            border-color: #4b5257;
-        }
-        .alert {
-            border-radius: 5px;
-            padding: 10px 15px;
-            margin-bottom: 1rem;
-        }
-        .form-group {
-            display: none;
-        }
-        .form-group.active {
-            display: block;
-        }
-        .pagination {
-            justify-content: center;
-            margin-top: 1.5rem;
-        }
-        .pagination .page-link {
-            background: #f9f9f9;
-            color: #333;
-            border: 1px solid #999;
-            margin: 0 0.2rem;
-            padding: 0.5rem 0.75rem;
-            transition: all 0.3s ease;
-        }
-        .pagination .page-link:hover {
-            background: #e9ecef;
-            color: #000;
-            border-color: #666;
-        }
-        .pagination .page-item.active .page-link {
-            background: #007bff;
-            color: #fff;
-            border-color: #0056b3;
-        }
-        .pagination .page-item.disabled .page-link {
-            background: #f9f9f9;
-            color: #6c757d;
-            border-color: #999;
-        }
-        .required-field::after {
-            content: ' *';
-            color: #dc3545;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-        }
-        .filter-search-form {
-            margin-bottom: 1.5rem;
-        }
-        .image-preview {
-            max-width: 100px;
-            max-height: 100px;
-            margin-top: 0.5rem;
-            display: none;
-        }
-        .image-preview.active {
-            display: block;
-        }
-        @media (max-width: 768px) {
-            .dashboard-container {
-                width: calc(100% - 2rem);
-                margin: 1rem auto;
-                padding: 0 1rem;
-            }
-            .dashboard-title {
-                font-size: 2rem;
-            }
-            .card-header {
-                font-size: 1.1rem;
-            }
-            .table {
-                font-size: 0.9rem;
-            }
-            .pagination .page-link {
-                padding: 0.3rem 0.5rem;
-                font-size: 0.9rem;
-            }
-            .filter-search-form .row {
-                flex-direction: column;
-            }
-            .filter-search-form .col-md-4 {
-                margin-bottom: 1rem;
-            }
-        }
-    </style>
+    
 </head>
 <body class="shop">
     <div class="wrapper">
-        <?php include __DIR__ . '/../../includes/header.php'; ?>
+        <?php include $project_root . 'includes/header.php'; ?>
         <div class="dashboard-container">
             <div class="row">
-                <?php include __DIR__ . '/../../includes/admin_sidebar.php'; ?>
+                <?php include $project_root . 'includes/admin_sidebar.php'; ?>
                 <div class="col-md-9">
                     <h1 class="dashboard-title"><?php echo translate('admin_shop_title', 'Shop Management'); ?></h1>
                     <?php echo $status_message; ?>
@@ -708,7 +499,7 @@ if (isset($_GET['status'])) {
                             <h5 class="mb-0"><?php echo translate('admin_shop_list_header', 'Shop Items'); ?></h5>
                         </div>
                         <div class="card-body">
-                            <form method="GET" class="filter-search-form mb-4">
+                            <form method="GET" class="filter-search-form mb-4" action="<?php echo $base_path; ?>admin/ashop">
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <label for="category_filter" class="form-label"><?php echo translate('admin_shop_label_category_filter', 'Filter by Category'); ?></label>
@@ -799,17 +590,17 @@ if (isset($_GET['status'])) {
                                 <nav aria-label="<?php echo translate('admin_shop_pagination_aria', 'Page navigation'); ?>">
                                     <ul class="pagination">
                                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="admin/ashop?page=<?php echo $page - 1; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>" aria-label="<?php echo translate('admin_shop_previous', 'Previous'); ?>">
+                                            <a class="page-link" href="<?php echo $base_path; ?>admin/ashop?page=<?php echo $page - 1; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>" aria-label="<?php echo translate('admin_shop_previous', 'Previous'); ?>">
                                                 <span aria-hidden="true">&laquo;</span>
                                             </a>
                                         </li>
                                         <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                                             <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                                                <a class="page-link" href="admin/ashop?page=<?php echo $i; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>"><?php echo $i; ?></a>
+                                                <a class="page-link" href="<?php echo $base_path; ?>admin/ashop?page=<?php echo $i; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>"><?php echo $i; ?></a>
                                             </li>
                                         <?php endfor; ?>
                                         <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="admin/ashop?page=<?php echo $page + 1; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>" aria-label="<?php echo translate('admin_shop_next', 'Next'); ?>">
+                                            <a class="page-link" href="<?php echo $base_path; ?>admin/ashop?page=<?php echo $page + 1; ?><?php echo $category_filter ? '&category=' . urlencode($category_filter) : ''; ?><?php echo $search_query ? '&search=' . urlencode($search_query) : ''; ?>" aria-label="<?php echo translate('admin_shop_next', 'Next'); ?>">
                                                 <span aria-hidden="true">&raquo;</span>
                                             </a>
                                         </li>
@@ -821,7 +612,7 @@ if (isset($_GET['status'])) {
                 </div>
             </div>
         </div>
-        <?php include __DIR__ . '/../../includes/footer.php'; ?>
+        <?php include $project_root . 'includes/footer.php'; ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

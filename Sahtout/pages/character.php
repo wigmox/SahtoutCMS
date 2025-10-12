@@ -1,10 +1,11 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../includes/session.php';
-require_once '../languages/language.php';
-require_once '../includes/item_tooltip.php';
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
+require_once $project_root . 'includes/item_tooltip.php';
 $page_class = 'character';
-require_once '../includes/header.php';
+require_once $project_root . 'includes/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($_SESSION['lang'] ?? 'en'); ?>">
@@ -14,850 +15,18 @@ require_once '../includes/header.php';
     <meta name="description" content="<?php echo translate('meta_description', 'View your World of Warcraft character equipment, stats, and PvP details.'); ?>">
     <meta name="robots" content="index">
     <title><?php echo translate('page_title', 'Character Equipment'); ?></title>
+    
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            overflow-x: hidden;
-            margin: 0;
-            font-family: 'Arial', sans-serif;
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        main {
-            flex: 1;
-            width: 100%;
-        }
-
-        .nav-container {
-            border: 2px double #056602ff;
-            margin-top: 20px;
-        }
-
-        .character-container {
-            display: flex;
-            flex-wrap: wrap;
-            max-width: 1280px;
-            margin-left: auto;
-            margin-right: auto;
-            margin-top: 30px;
-            margin-bottom: 20px;
-            background-color: #1a1a1a93;
-            border: 2px solid #444;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .equipment-column {
-            width: 220px;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .equipment-left {
-            order: 1;
-        }
-
-        .equipment-right {
-            order: 3;
-        }
-
-        .character-center {
-            order: 2;
-            flex: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border-left: 1px solid #444;
-            border-right: 1px solid #444;
-            min-width: 280px;
-        }
-
-        .character-image {
-            width: 100%;
-            max-width: 380px;
-            height: 420px;
-            margin: 20px 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .character-image canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        .character-image img.default-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
-
-        .weapons-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 90px;
-            width: 100%;
-            padding-top: 20px;
-        }
-
-        .tab-nav {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-            max-width: 1280px;
-            margin: 20px auto;
-            background: linear-gradient(180deg, #141414e6 0%, #0a0a0ae6 100%);
-            border: 3px solid #666;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .tab-nav button {
-            flex: 1;
-            padding: 12px 20px;
-            background: #222222cc;
-            border: none;
-            border-right: 1px solid #666;
-            color: #ffcc00;
-            font-size: 16px;
-            font-weight: bold;
-            text-align: center;
-            cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-
-        .tab-nav button:last-child {
-            border-right: none;
-        }
-
-        .tab-nav button:hover {
-            background: #333;
-            color: #ffee58;
-            cursor: url('/Sahtout/img/hover_wow.gif') 16 16, auto;
-        }
-
-        .tab-nav button.active {
-            background: #444;
-            color: #ffee58;
-            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
-        }
-
-        .tab-content {
-            max-width: 1280px;
-            margin-left: auto;
-            margin-right: auto;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            background: linear-gradient(180deg, #141414e6 0%, #0a0a0ae6 100%);
-            border: 3px solid #666;
-            border-radius: 8px;
-            padding: 16px;
-            text-align: center;
-            color: #fff;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
-            animation: fadeIn 0.5s ease-in;
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .stats-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            padding: 16px;
-        }
-
-        .stats-category {
-            background: #222222cc;
-            border: 1px solid #555;
-            border-radius: 4px;
-            padding: 12px;
-            width: 250px;
-            text-align: left;
-        }
-
-        .stats-category h3 {
-            font-size: 18px;
-            color: #ffcc00;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .stats-item {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            margin-bottom: 6px;
-            color: #fff;
-        }
-
-        .stats-item span:first-child {
-            color: #ccc;
-        }
-
-        .stats-item span:last-child {
-            color: #ffcc00;
-            font-weight: bold;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        .pvp-team-item {
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #666;
-        }
-
-        .pvp-team-item:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-            padding-bottom: 0;
-        }
-
-        .pvp-team-item:hover {
-            animation: pulse 0.3s ease-in-out;
-        }
-
-        .pvp-team {
-            font-size: 20px;
-            font-weight: bold;
-            color: #ffcc00;
-            margin-bottom: 8px;
-            transition: color 0.2s ease;
-        }
-
-        .pvp-team:hover {
-            color: #ffee58;
-        }
-
-        .pvp-members {
-            font-size: 14px;
-            color: #fff;
-            margin-bottom: 8px;
-        }
-
-        .pvp-members ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: inline-flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-        }
-
-        .pvp-members li {
-            display: inline-flex;
-            align-items: center;
-            background: #222222cc;
-            border: 1px solid #555;
-            border-radius: 4px;
-            padding: 8px 12px;
-            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-        }
-
-        .pvp-members a {
-            display: inline-flex;
-            align-items: center;
-            color: #ffcc00;
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }
-
-        .pvp-members a:hover li {
-            background: #333;
-            border-color: #777;
-            transform: scale(1.03);
-        }
-
-        .pvp-members li.current-player {
-            color: #fff;
-            font-weight: bold;
-            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
-        }
-
-        .pvp-members a:hover {
-            color: #ffee58;
-            cursor: url('/Sahtout/img/hover_wow.gif') 16 16, auto;
-        }
-
-        .member-details {
-            color: #ccc;
-            font-size: 12px;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .member-details img {
-            width: 20px;
-            height: 20px;
-            vertical-align: middle;
-            margin-right: 4px;
-        }
-
-        .pvp-kills {
-            font-size: 14px;
-            color: #fff;
-            padding-top: 8px;
-        }
-
-        .pvp-kills span {
-            color: #ffcc00;
-            font-weight: bold;
-            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
-        }
-
-        .slot {
-            display: flex;
-            align-items: center;
-            background-color: #2222229f;
-            border: 1px solid #444;
-            border-radius: 4px;
-            padding: 10px;
-            margin-bottom: 10px;
-            transition: all 0.2s;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .slot.has-item {
-            cursor: pointer;
-        }
-
-        .weapon-slot {
-            width: 200px;
-            max-width: 100%;
-        }
-
-        .slot:hover {
-            background-color: #333;
-            border-color: #666;
-            cursor: url('/Sahtout/img/hover_wow.gif') 16 16, auto;
-        }
-
-        .slot-icon {
-            width: 40px;
-            height: 40px;
-            background-color: #333;
-            border: 1px solid #555;
-            border-radius: 3px;
-            margin-right: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .slot-icon img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        .slot-info {
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .slot-name {
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .slot-item {
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .empty-slot {
-            color: #777;
-            font-style: italic;
-        }
-
-        .character-name {
-            font-size: 24px;
-            color: #fff;
-            margin-bottom: 5px;
-            text-align: center;
-        }
-
-        .character-details {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-top: 10px;
-            font-size: 14px;
-            gap: 5px;
-        }
-
-        .character-level {
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .character-race {
-            color: #ffd100;
-        }
-
-        .error-message {
-            color: #ff5555;
-            font-style: italic;
-            text-align: center;
-            padding: 20px;
-            width: 100%;
-            max-width: 1280px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .item-tooltip {
-            position: fixed;
-            z-index: 1000;
-            pointer-events: none;
-            max-width: 90vw;
-            padding: 10px;
-            color: #fff;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        @media (max-width: 900px) {
-            .character-container {
-                max-width: 100%;
-                margin: auto;
-                padding: 4px;
-                min-height: unset;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .character-container {
-                max-width: 100%;
-                margin: auto;
-                padding: 4px;
-                min-height: unset;
-            }
-
-            .equipment-column {
-                width: 80px;
-                padding: 10px;
-            }
-
-            .character-center {
-                border-left: none;
-                border-right: none;
-                min-width: 160px;
-                padding: 10px;
-            }
-
-            .character-image {
-                max-width: 200px;
-                height: auto;
-                aspect-ratio: 7 / 10;
-                margin: 10px 0;
-            }
-
-            .weapons-container {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                margin-top: 60px;
-                padding-top: 10px;
-            }
-
-            .tab-nav {
-                max-width: 100%;
-                margin: 10px auto;
-                padding: 4px;
-            }
-
-            .tab-nav button {
-                padding: 10px;
-                font-size: 14px;
-            }
-
-            .tab-content {
-                max-width: 100%;
-                margin: auto;
-                padding: 10px;
-                border: 2px solid #666;
-                box-shadow: none;
-            }
-
-            .stats-container {
-                flex-direction: row;
-                align-items: center;
-                padding: 10px;
-            }
-
-            .stats-category {
-                width: 100%;
-                max-width: 300px;
-            }
-
-            .pvp-team-item {
-                margin-bottom: 8px;
-                padding-bottom: 6px;
-            }
-
-            .pvp-team {
-                font-size: 16px;
-            }
-
-            .pvp-members {
-                font-size: 12px;
-            }
-
-            .pvp-members ul {
-                gap: 6px;
-            }
-
-            .pvp-members li {
-                padding: 6px 10px;
-            }
-
-            .member-details img {
-                width: 16px;
-                height: 16px;
-                margin-right: 3px;
-            }
-
-            .member-details::before {
-                display: inline;
-            }
-
-            .member-details.horde::before {
-                content: 'H, ';
-            }
-
-            .pvp-kills {
-                font-size: 13px;
-                padding-top: 6px;
-            }
-
-            .weapon-slot {
-                width: 48px;
-                max-width: 100%;
-            }
-
-            .slot {
-                padding: 4px;
-                width: 48px;
-            }
-
-            .slot-icon {
-                width: 36px;
-                height: 36px;
-                margin-right: 0;
-            }
-
-            .slot-info {
-                display: none;
-            }
-
-            .character-name {
-                font-size: 20px;
-            }
-
-            .character-details {
-                font-size: 13px;
-            }
-
-            .error-message {
-                padding: 10px;
-            }
-
-            .item-tooltip {
-                font-size: 13px;
-                padding: 8px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .character-container {
-                margin: auto;
-                padding: 4px;
-                min-height: unset;
-            }
-
-            .equipment-column {
-                width: 80px;
-                padding: 10px;
-            }
-
-            .character-center {
-                padding: 10px;
-                min-width: 160px;
-            }
-
-            .character-image {
-                max-width: 160px;
-                height: auto;
-                aspect-ratio: 7 / 10;
-                margin: 10px 0;
-            }
-
-            .weapons-container {
-                margin: auto;
-                padding-top: 10px;
-            }
-
-            .tab-nav {
-                padding: 3px;
-            }
-
-            .tab-nav button {
-                padding: 8px;
-                font-size: 12px;
-            }
-
-            .tab-content {
-                padding: 8px;
-                border: 2px solid #666;
-            }
-
-            .stats-category {
-                padding: 8px;
-            }
-
-            .stats-category h3 {
-                font-size: 16px;
-            }
-
-            .stats-item {
-                font-size: 13px;
-            }
-
-            .pvp-team-item {
-                margin-bottom: 6px;
-                padding-bottom: 5px;
-            }
-
-            .pvp-team {
-                font-size: 15px;
-            }
-
-            .pvp-members {
-                font-size: 11px;
-            }
-
-            .pvp-members ul {
-                gap: 5px;
-            }
-
-            .pvp-members li {
-                padding: 4px 8px;
-            }
-
-            .member-details img {
-                width: 16px;
-                height: 16px;
-                margin-right: 3px;
-            }
-
-            .member-details span {
-                display: none;
-            }
-
-            .pvp-kills {
-                font-size: 12px;
-                padding-top: 5px;
-            }
-
-            .slot {
-                padding: 3px;
-                width: 48px;
-            }
-
-            .slot-icon {
-                width: 32px;
-                height: 32px;
-            }
-
-            .slot-info {
-                display: none;
-            }
-
-            .character-name {
-                font-size: 18px;
-            }
-
-            .character-details {
-                font-size: 12px;
-            }
-
-            .error-message {
-                padding: 10px;
-            }
-
-            .item-tooltip {
-                font-size: 12px;
-                padding: 8px;
-            }
-        }
-
-        @media (max-width: 360px) {
-            .character-container {
-                padding: 2px;
-                min-height: unset;
-            }
-
-            .equipment-column {
-                width: 80px;
-                padding: 8px;
-            }
-
-            .character-center {
-                padding: 8px;
-                min-width: 160px;
-            }
-
-            .character-image {
-                max-width: 140px;
-                height: auto;
-                aspect-ratio: 7 / 10;
-                margin: 10px 0;
-            }
-
-            .weapons-container {
-                margin: auto;
-                padding-top: 10px;
-            }
-
-            .tab-nav {
-                padding: 2px;
-            }
-
-            .tab-nav button {
-                padding: 6px;
-                font-size: 11px;
-            }
-
-            .tab-content {
-                padding: 6px;
-                border: 2px solid #666;
-            }
-
-            .stats-category {
-                padding: 6px;
-            }
-
-            .stats-category h3 {
-                font-size: 14px;
-            }
-
-            .stats-item {
-                font-size: 12px;
-            }
-
-            .pvp-team-item {
-                margin-bottom: 6px;
-                padding-bottom: 4px;
-            }
-
-            .pvp-team {
-                font-size: 14px;
-            }
-
-            .pvp-members {
-                font-size: 10px;
-            }
-
-            .pvp-members ul {
-                gap: 4px;
-            }
-
-            .pvp-members li {
-                padding: 3px 6px;
-            }
-
-            .member-details img {
-                width: 12px;
-                height: 12px;
-                margin-right: 2px;
-            }
-
-            .member-details span {
-                display: none;
-            }
-
-            .pvp-kills {
-                font-size: 11px;
-                padding-top: 4px;
-            }
-
-            .slot {
-                padding: 2px;
-                width: 48px;
-            }
-
-            .slot-icon {
-                width: 32px;
-                height: 32px;
-            }
-
-            .slot-info {
-                display: none;
-            }
-
-            .character-name {
-                font-size: 18px;
-            }
-
-            .character-details {
-                font-size: 12px;
-            }
-
-            .error-message {
-                padding: 10px;
-            }
-
-            .item-tooltip {
-                font-size: 12px;
-                padding: 8px;
-            }
-        }
-    </style>
+    :root{
+            --bg-character:url('<?php echo $base_path; ?>img/backgrounds/bg-character.jpg');
+            --hover-wow-gif: url('<?php echo $base_path; ?>img/hover_wow.gif');
+        }
+</style>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const tooltip = document.createElement('div');
             tooltip.className = 'item-tooltip';
             document.body.appendChild(tooltip);
-
             const slots = document.querySelectorAll('.slot.has-item');
             slots.forEach(slot => {
                 slot.addEventListener('mouseenter', (e) => {
@@ -865,7 +34,6 @@ require_once '../includes/header.php';
                 });
                 slot.addEventListener('mousemove', updateTooltipPosition);
                 slot.addEventListener('mouseleave', hideTooltip);
-
                 slot.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     showTooltip(e, slot);
@@ -873,7 +41,6 @@ require_once '../includes/header.php';
                 });
                 slot.addEventListener('touchmove', updateTooltipPosition);
             });
-
             function showTooltip(e, slot) {
                 const tooltipContent = slot.dataset.tooltip;
                 if (tooltipContent) {
@@ -882,18 +49,15 @@ require_once '../includes/header.php';
                     updateTooltipPosition(e);
                 }
             }
-
             function hideTooltip() {
                 tooltip.style.display = 'none';
             }
-
             function updateTooltipPosition(e) {
                 const tooltip = document.querySelector('.item-tooltip');
                 const x = (e.clientX || (e.touches && e.touches[0].clientX)) + 10;
                 const y = (e.clientY || (e.touches && e.touches[0].clientY)) + 10;
                 tooltip.style.left = `${x}px`;
                 tooltip.style.top = `${y}px`;
-
                 const rect = tooltip.getBoundingClientRect();
                 if (rect.right > window.innerWidth) {
                     tooltip.style.left = `${window.innerWidth - rect.width - 10}px`;
@@ -902,7 +66,6 @@ require_once '../includes/header.php';
                     tooltip.style.top = `${window.innerHeight - rect.height - 10}px`;
                 }
             }
-
             // Tab navigation
             const tabs = document.querySelectorAll('.tab-nav button');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -1188,17 +351,17 @@ if ($guid > 0) {
                         } else {
                             $placeholders = implode(',', array_fill(0, count($itemEntries), '?'));
                             $stmt = $world_db->prepare("
-                                SELECT it.entry, it.name, it.Quality, it.ItemLevel, it.RequiredLevel, it.SellPrice, 
-                                       it.MaxDurability, it.delay, it.bonding, it.class, it.subclass, it.InventoryType, 
-                                       it.dmg_min1, it.dmg_max1, it.armor, it.holy_res, it.fire_res, it.nature_res, 
-                                       it.frost_res, it.shadow_res, it.arcane_res, it.stat_type1, it.stat_value1, 
-                                       it.stat_type2, it.stat_value2, it.stat_type3, it.stat_value3, it.stat_type4, 
-                                       it.stat_value4, it.stat_type5, it.stat_value5, it.stat_type6, it.stat_value6, 
-                                       it.stat_type7, it.stat_value7, it.stat_type8, it.stat_value8, it.stat_type9, 
-                                       it.stat_value9, it.stat_type10, it.stat_value10, it.socketColor_1, 
-                                       it.socketColor_2, it.socketColor_3, it.socketBonus, it.spellid_1, 
-                                       it.spelltrigger_1, it.spellid_2, it.spelltrigger_2, it.spellid_3, 
-                                       it.spelltrigger_3, it.spellid_4, it.spelltrigger_4, it.spellid_5, 
+                                SELECT it.entry, it.name, it.Quality, it.ItemLevel, it.RequiredLevel, it.SellPrice,
+                                       it.MaxDurability, it.delay, it.bonding, it.class, it.subclass, it.InventoryType,
+                                       it.dmg_min1, it.dmg_max1, it.armor, it.holy_res, it.fire_res, it.nature_res,
+                                       it.frost_res, it.shadow_res, it.arcane_res, it.stat_type1, it.stat_value1,
+                                       it.stat_type2, it.stat_value2, it.stat_type3, it.stat_value3, it.stat_type4,
+                                       it.stat_value4, it.stat_type5, it.stat_value5, it.stat_type6, it.stat_value6,
+                                       it.stat_type7, it.stat_value7, it.stat_type8, it.stat_value8, it.stat_type9,
+                                       it.stat_value9, it.stat_type10, it.stat_value10, it.socketColor_1,
+                                       it.socketColor_2, it.socketColor_3, it.socketBonus, it.spellid_1,
+                                       it.spelltrigger_1, it.spellid_2, it.spelltrigger_2, it.spellid_3,
+                                       it.spelltrigger_3, it.spellid_4, it.spelltrigger_4, it.spellid_5,
                                        it.spelltrigger_5, it.description, it.AllowableClass, it.displayid,
                                        idi.InventoryIcon_1 AS icon
                                 FROM item_template it
@@ -1252,7 +415,7 @@ if ($guid > 0) {
                     <div class="slot-icon">
                         <?php
                         $icon = isset($items[$slot]) && !empty($items[$slot]['icon']) ? $items[$slot]['icon'] : ($defaultIcons[$slot] ?? 'inv_misc_questionmark');
-                        $iconSrc = isset($items[$slot]) && !empty($items[$slot]['icon']) ? "https://wow.zamimg.com/images/wow/icons/large/$icon.jpg" : "/Sahtout/img/characterarmor/$icon";
+                        $iconSrc = isset($items[$slot]) && !empty($items[$slot]['icon']) ? "https://wow.zamimg.com/images/wow/icons/large/$icon.jpg" : "{$base_path}img/characterarmor/$icon";
                         ?>
                         <img src="<?= htmlspecialchars($iconSrc) ?>" alt="<?= htmlspecialchars($slotLabels[$slot]) ?>" loading="lazy">
                     </div>
@@ -1279,7 +442,7 @@ if ($guid > 0) {
                     <span class="character-race"><?= isset($races[$character['race']]) ? htmlspecialchars($races[$character['race']]['name']) : translate('race_unknown', 'Unknown') ?></span>
                 </div>
                 <div class="character-image">
-                    <img src="/Sahtout/3dmodels/3d_default.gif" alt="<?php echo translate('default_character_image', 'Default Character Image'); ?>" class="default-image">
+                    <img src="<?php echo $base_path; ?>3dmodels/3d_default.gif" alt="<?php echo translate('default_character_image', 'Default Character Image'); ?>" class="default-image">
                     <script type="importmap">
                         {
                             "imports": {
@@ -1313,7 +476,7 @@ if ($guid > 0) {
                         <?php
                         $raceIcon = isset($races[$character['race']]) ? $races[$character['race']]['icon'] : 'unknown';
                         $gender = ($character['gender'] ?? 0) == 0 ? 'male' : 'female';
-                        $modelPath = "/Sahtout/3dmodels/character/$raceIcon/$gender/$raceIcon.gltf";
+                        $modelPath = "$base_path/3dmodels/character/$raceIcon/$gender/$raceIcon.gltf";
                         ?>
                         const modelPath = <?= json_encode($modelPath) ?>;
 
@@ -1389,7 +552,7 @@ if ($guid > 0) {
                             <div class="slot-icon">
                                 <?php
                                 $icon = isset($items[$slot]) && !empty($items[$slot]['icon']) ? $items[$slot]['icon'] : ($defaultIcons[$slot] ?? 'inv_misc_questionmark');
-                                $iconSrc = isset($items[$slot]) && !empty($items[$slot]['icon']) ? "https://wow.zamimg.com/images/wow/icons/large/$icon.jpg" : "/Sahtout/img/characterarmor/$icon";
+                                $iconSrc = isset($items[$slot]) && !empty($items[$slot]['icon']) ? "https://wow.zamimg.com/images/wow/icons/large/$icon.jpg" : "{$base_path}img/characterarmor/$icon";
                                 ?>
                                 <img src="<?= htmlspecialchars($iconSrc) ?>" alt="<?= htmlspecialchars($slotLabels[$slot]) ?>" loading="lazy">
                             </div>
@@ -1414,7 +577,7 @@ if ($guid > 0) {
                     <div class="slot-icon">
                         <?php
                         $icon = isset($items[$slot]) && !empty($items[$slot]['icon']) ? $items[$slot]['icon'] : ($defaultIcons[$slot] ?? 'inv_misc_questionmark');
-                        $iconSrc = isset($items[$slot]) && !empty($items[$slot]['icon']) ? "https://wow.zamimg.com/images/wow/icons/large/$icon.jpg" : "/Sahtout/img/characterarmor/$icon";
+                        $iconSrc = isset($items[$slot]) && !empty($items[$slot]['icon']) ? "https://wow.zamimg.com/images/wow/icons/large/$icon.jpg" : "{$base_path}img/characterarmor/$icon";
                         ?>
                         <img src="<?= htmlspecialchars($iconSrc) ?>" alt="<?= htmlspecialchars($slotLabels[$slot]) ?>" loading="lazy">
                     </div>
@@ -1455,16 +618,16 @@ if ($guid > 0) {
                         <?php
                         // Map class IDs to their primary power type indices (using PowerType IDs)
                         $classPowerMap = [
-                            1 => 1,  // Warrior: Rage (maxpower2, PowerType 1)
-                            2 => 0,  // Paladin: Mana (maxpower1, PowerType 0)
-                            3 => 2,  // Hunter: Focus (maxpower3, PowerType 2)
-                            4 => 3,  // Rogue: Energy (maxpower4, PowerType 3)
-                            5 => 0,  // Priest: Mana (maxpower1, PowerType 0)
-                            6 => 6,  // Death Knight: Runic Power (maxpower7, PowerType 6)
-                            7 => 0,  // Shaman: Mana (maxpower1, PowerType 0)
-                            8 => 0,  // Mage: Mana (maxpower1, PowerType 0)
-                            9 => 0,  // Warlock: Mana (maxpower1, PowerType 0)
-                            11 => 0  // Druid: Mana (maxpower1, PowerType 0)
+                            1 => 1, // Warrior: Rage (maxpower2, PowerType 1)
+                            2 => 0, // Paladin: Mana (maxpower1, PowerType 0)
+                            3 => 2, // Hunter: Focus (maxpower3, PowerType 2)
+                            4 => 3, // Rogue: Energy (maxpower4, PowerType 3)
+                            5 => 0, // Priest: Mana (maxpower1, PowerType 0)
+                            6 => 6, // Death Knight: Runic Power (maxpower7, PowerType 6)
+                            7 => 0, // Shaman: Mana (maxpower1, PowerType 0)
+                            8 => 0, // Mage: Mana (maxpower1, PowerType 0)
+                            9 => 0, // Warlock: Mana (maxpower1, PowerType 0)
+                            11 => 0 // Druid: Mana (maxpower1, PowerType 0)
                         ];
                         $powerIndex = isset($classPowerMap[$character['class']]) ? $classPowerMap[$character['class']] : 0;
                         // Adjust Rage and Runic Power for display (divide by 10)
@@ -1545,10 +708,10 @@ if ($guid > 0) {
                                     $class = isset($classes[$member['class']]) ? htmlspecialchars($classes[$member['class']]['name']) : translate('class_unknown', 'Unknown');
                                     $class_icon_name = isset($classes[$member['class']]) ? $classes[$member['class']]['icon'] : 'unknown';
                                     $class_abbr = isset($class_abbr[$class]) ? $class_abbr[$class] : substr($class, 0, 3);
-                                    $faction_icon = "/Sahtout/img/accountimg/faction/$faction_icon.png";
+                                    $faction_icon = "{$base_path}img/accountimg/faction/$faction_icon.png";
                                     $gender_dir = ($member['gender'] ?? 0) == 0 ? 'male' : 'female';
-                                    $race_icon = "/Sahtout/img/accountimg/race/$gender_dir/$race_icon_name.png";
-                                    $class_icon = "/Sahtout/img/accountimg/class/$class_icon_name.webp";
+                                    $race_icon = "{$base_path}img/accountimg/race/$gender_dir/$race_icon_name.png";
+                                    $class_icon = "{$base_path}img/accountimg/class/$class_icon_name.webp";
                                     if ($member['guid'] == $character['guid']) {
                                         echo "<li class=\"current-player\">";
                                         echo "$name <span class=\"member-details $faction\">";
@@ -1557,7 +720,7 @@ if ($guid > 0) {
                                         echo "<img src=\"$class_icon\" alt=\"$class\" title=\"$class\" class=\"inline-block\">";
                                         echo "</span></li>";
                                     } else {
-                                        echo "<a href=\"/Sahtout/character?guid={$member['guid']}\" class=\"pvp-members-link\">";
+                                        echo "<a href=\"{$base_path}character?guid={$member['guid']}\" class=\"pvp-members-link\">";
                                         echo "<li>";
                                         echo "$name <span class=\"member-details $faction\">";
                                         echo "<img src=\"$faction_icon\" alt=\"$faction\" title=\"$faction\" class=\"inline-block\">";
@@ -1580,6 +743,6 @@ if ($guid > 0) {
     <?php endif; ?>
     <div style="clear: both;"></div>
 </main>
-<?php include_once '../includes/footer.php'; ?>
+<?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

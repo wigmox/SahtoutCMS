@@ -1,22 +1,20 @@
 <?php
 define('ALLOWED_ACCESS', true);
+require_once __DIR__ . '/../includes/paths.php'; // Include paths.php
 require_once __DIR__ . '/header.inc.php';
 require_once __DIR__ . '/languages/language.php';
-
 $errors = [];
 $success = false;
 $configFile = realpath(__DIR__ . '/../includes/config.php');
 $configCapFile = realpath(__DIR__ . '/../includes/config.cap.php');
-
 $default_site_key = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 $default_secret_key = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
-
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dbHost = trim($_POST['db_host'] ?? '');
     $dbUser = trim($_POST['db_user'] ?? '');
     $dbPass = trim($_POST['db_pass'] ?? '');
+    $dbPort = trim($_POST['db_port'] ?? '3306'); // Default port
     $dbAuth = trim($_POST['db_auth'] ?? '');
     $dbWorld = trim($_POST['db_world'] ?? '');
     $dbChar = trim($_POST['db_char'] ?? '');
@@ -24,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $recaptcha_enabled = isset($_POST['recaptcha_enabled']) ? 1 : 0;
     $recaptcha_site_key = $recaptcha_enabled ? trim($_POST['recaptcha_site_key'] ?? '') : '';
     $recaptcha_secret_key = $recaptcha_enabled ? trim($_POST['recaptcha_secret_key'] ?? '') : '';
-
     // Use default keys if none provided and reCAPTCHA is enabled
     if ($recaptcha_enabled && empty($recaptcha_site_key)) {
         $recaptcha_site_key = $default_site_key;
@@ -32,9 +29,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($recaptcha_enabled && empty($recaptcha_secret_key)) {
         $recaptcha_secret_key = $default_secret_key;
     }
-
     if (empty($dbHost)) $errors[] = translate('err_db_host_required', 'Database host is required');
     if (empty($dbUser)) $errors[] = translate('err_db_user_required', 'Database username is required');
+    if (empty($dbPort)) $errors[] = translate('err_db_port_required', 'Database port is required');
+    elseif (!is_numeric($dbPort) || $dbPort < 1 || $dbPort > 65535) {
+        $errors[] = translate('err_db_port_invalid', 'Database port must be a valid number between 1 and 65535');
+    }
     if (empty($dbAuth)) $errors[] = translate('err_db_auth_required', 'Auth database name is required');
     if (empty($dbWorld)) $errors[] = translate('err_db_world_required', 'World database name is required');
     if (empty($dbChar)) $errors[] = translate('err_db_char_required', 'Character database name is required');
@@ -42,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($recaptcha_enabled && (empty($recaptcha_site_key) || empty($recaptcha_secret_key))) {
         $errors[] = translate('err_recaptcha_keys_required', 'reCAPTCHA Site Key and Secret Key are required when reCAPTCHA is enabled.');
     }
-
     if (empty($errors)) {
         $dbConns = [
             'Auth DB' => [$dbAuth, null, 'auth'],
@@ -50,12 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Char DB' => [$dbChar, null, 'char'],
             'Site DB' => [$dbSite, null, 'site'],
         ];
-
         foreach ($dbConns as $name => $connInfo) {
             try {
-                $conn = new mysqli($dbHost, $dbUser, $dbPass, $connInfo[0]);
+                $conn = new mysqli($dbHost, $dbUser, $dbPass, $connInfo[0], $dbPort);
                 $dbConns[$name][1] = $conn;
-
                 $requiredTables = [];
                 switch ($connInfo[2]) {
                     case 'auth':
@@ -68,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $requiredTables = ['characters', 'character_inventory'];
                         break;
                 }
-
                 foreach ($requiredTables as $table) {
                     $result = $conn->query("SHOW TABLES LIKE '$table'");
                     if (!$result || $result->num_rows === 0) {
@@ -80,29 +76,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = "❌ {$name} " . translate('err_connection_failed', 'Connection failed: %s', $e->getMessage());
             }
         }
-
         if (empty($errors)) {
             $configContent = "<?php
 if (!defined('ALLOWED_ACCESS')) exit('Direct access not allowed.');
 \$db_host = '" . addslashes($dbHost) . "';
+\$db_port = '" . addslashes($dbPort) . "';
 \$db_user = '" . addslashes($dbUser) . "';
 \$db_pass = '" . addslashes($dbPass) . "';
 \$db_auth = '" . addslashes($dbAuth) . "';
 \$db_world = '" . addslashes($dbWorld) . "';
 \$db_char = '" . addslashes($dbChar) . "';
 \$db_site = '" . addslashes($dbSite) . "';
-
-\$auth_db = new mysqli(\$db_host,\$db_user,\$db_pass,\$db_auth);
-\$world_db = new mysqli(\$db_host,\$db_user,\$db_pass,\$db_world);
-\$char_db = new mysqli(\$db_host,\$db_user,\$db_pass,\$db_char);
-\$site_db = new mysqli(\$db_host,\$db_user,\$db_pass,\$db_site);
-
+\$auth_db = new mysqli(\$db_host, \$db_user, \$db_pass, \$db_auth, \$db_port);
+\$world_db = new mysqli(\$db_host, \$db_user, \$db_pass, \$db_world, \$db_port);
+\$char_db = new mysqli(\$db_host, \$db_user, \$db_pass, \$db_char, \$db_port);
+\$site_db = new mysqli(\$db_host, \$db_user, \$db_pass, \$db_site, \$db_port);
 if (\$auth_db->connect_error) die('Auth DB Connection failed: ' . \$auth_db->connect_error);
 if (\$world_db->connect_error) die('World DB Connection failed: ' . \$world_db->connect_error);
 if (\$char_db->connect_error) die('Char DB Connection failed: ' . \$char_db->connect_error);
 if (\$site_db->connect_error) die('Site DB Connection failed: ' . \$site_db->connect_error);
 ?>";
-
             $capConfigContent = "<?php
 if (!defined('ALLOWED_ACCESS')) exit('Direct access not allowed.');
 \$recaptcha_enabled = " . ($recaptcha_enabled ? 'true' : 'false') . ";
@@ -112,10 +105,8 @@ define('RECAPTCHA_ENABLED', \$recaptcha_enabled);
 define('RECAPTCHA_SITE_KEY', \$recaptcha_site_key);
 define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
 ?>";
-
             $configDir = dirname($configFile);
             $capConfigDir = dirname($configCapFile);
-
             if (!is_writable($configDir)) {
                 $errors[] = "⚠️ " . translate('err_config_dir_not_writable', 'Config directory is not writable: %s', $configDir);
             } elseif (!is_writable($capConfigDir)) {
@@ -127,13 +118,11 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
                 if (file_put_contents($configCapFile, $capConfigContent) === false) {
                     $errors[] = "⚠️ " . translate('err_failed_write_cap', 'Failed to write reCAPTCHA config file: %s', $capConfigDir);
                 }
-
                 if (empty($errors)) {
                     $success = true;
                 }
             }
         }
-
         foreach ($dbConns as $name => $connInfo) {
             if ($connInfo[1] instanceof mysqli && !$connInfo[1]->connect_error) {
                 try {
@@ -372,7 +361,6 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
     <div class="container">
         <h1>⚔️ <?= translate('installer_name', 'SahtoutCMS Installer') ?></h1>
         <h2 class="section-title"><?= translate('step3_title', 'Step 3: Database & reCAPTCHA Setup') ?></h2>
-
         <?php if (!empty($errors)): ?>
             <div class="error-box">
                 <strong><?= translate('err_fix_errors', 'Please fix the following errors:') ?></strong>
@@ -388,34 +376,29 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
                 <span class="db-status-icon db-status-success">✔</span>
                 <span class="success"><?= translate('msg_config_saved', 'All databases connected successfully! Config and reCAPTCHA files created.') ?></span>
             </div>
-            <a href="step4_realm.php" class="btn"><?= translate('btn_proceed_to_realm', 'Proceed to Step 4 Realm configuration ➡️') ?></a>
+            <a href="<?php echo $base_path; ?>install/step4_realm" class="btn"><?= translate('btn_proceed_to_realm', 'Proceed to Step 4 Realm configuration ➡️') ?></a>
         <?php endif; ?>
-
         <?php if (!$success): ?>
             <form method="post">
                 <div class="section-title"><?= translate('db_credentials', 'Database Credentials') ?></div>
                 <label for="db_host"><?= translate('label_db_host', 'Database Host') ?></label>
                 <input type="text" id="db_host" name="db_host" value="<?= htmlspecialchars($_POST['db_host'] ?? 'localhost') ?>" required>
-
+                <label for="db_port"><?= translate('label_db_port', 'Database Port') ?></label>
+                <input type="text" id="db_port" name="db_port" value="<?= htmlspecialchars($_POST['db_port'] ?? '3306') ?>" required>
+                <p class="note"><?= translate('note_db_port', 'Default port is 3306 for MySQL/MariaDB') ?></p>
                 <label for="db_user"><?= translate('label_db_user', 'Database Username') ?></label>
                 <input type="text" id="db_user" name="db_user" value="<?= htmlspecialchars($_POST['db_user'] ?? '') ?>" required>
-
                 <label for="db_pass"><?= translate('label_db_pass', 'Database Password') ?></label>
                 <input type="password" id="db_pass" name="db_pass" value="<?= htmlspecialchars($_POST['db_pass'] ?? '') ?>">
-
                 <label for="db_auth"><?= translate('label_db_auth', 'Auth DB Name') ?></label>
                 <input type="text" id="db_auth" name="db_auth" value="<?= htmlspecialchars($_POST['db_auth'] ?? '') ?>" required>
-
                 <label for="db_world"><?= translate('label_db_world', 'World DB Name') ?></label>
                 <input type="text" id="db_world" name="db_world" value="<?= htmlspecialchars($_POST['db_world'] ?? '') ?>" required>
-
                 <label for="db_char"><?= translate('label_db_char', 'Char DB Name') ?></label>
                 <input type="text" id="db_char" name="db_char" value="<?= htmlspecialchars($_POST['db_char'] ?? '') ?>" required>
-
                 <label for="db_site"><?= translate('label_db_site', 'Site DB Name') ?></label>
                 <input type="text" id="db_site" name="db_site" value="<?= htmlspecialchars($_POST['db_site'] ?? 'sahtout_site') ?>" required>
                 <p class="note"><?= translate('note_site_db', '“sahtout_site” is recommended for the site database name') ?></p>
-
                 <div class="section-title"><?= translate('section_recaptcha', 'reCAPTCHA V2 Checkbox Configuration') ?></div>
                 <div class="form-check">
                     <input type="checkbox" id="recaptcha_enabled" name="recaptcha_enabled" class="form-check-input" onclick="toggleRecaptchaFields()" <?php echo isset($_POST['recaptcha_enabled']) ? 'checked' : ''; ?>>
@@ -425,12 +408,10 @@ define('RECAPTCHA_SECRET_KEY', \$recaptcha_secret_key);
                 <div class="recaptcha-fields <?php echo isset($_POST['recaptcha_enabled']) ? 'active' : ''; ?>">
                     <label for="recaptcha_site_key"><?= translate('label_recaptcha_site_key', 'Site Key') ?></label>
                     <input type="text" id="recaptcha_site_key" name="recaptcha_site_key" placeholder="<?= translate('placeholder_recaptcha_default', 'Leave empty for default') ?>" value="<?= htmlspecialchars($_POST['recaptcha_site_key'] ?? '') ?>">
-
                     <label for="recaptcha_secret_key"><?= translate('label_recaptcha_secret_key', 'Secret Key') ?></label>
                     <input type="text" id="recaptcha_secret_key" name="recaptcha_secret_key" placeholder="<?= translate('placeholder_recaptcha_default', 'Leave empty for default') ?>" value="<?= htmlspecialchars($_POST['recaptcha_secret_key'] ?? '') ?>">
                     <p class="note"><?= translate('note_recaptcha_empty', 'Leave reCAPTCHA fields empty to use default keys when enabled') ?></p>
                 </div>
-
                 <button type="submit" class="btn"><?= translate('btn_test_save_db', 'Test & Save Database and reCAPTCHA Settings') ?></button>
             </form>
         <?php endif; ?>

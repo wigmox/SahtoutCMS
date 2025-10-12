@@ -1,8 +1,11 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once '../../includes/session.php';
-$page_class = "armory";
-require_once '../../includes/header.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../includes/paths.php';
+
+// Use $project_root for filesystem includes
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'includes/header.php';
 
 // Functions to get faction and icon paths
 function getFaction($race) {
@@ -11,10 +14,12 @@ function getFaction($race) {
 }
 
 function factionIconByName($faction) {
-    return "/Sahtout/img/accountimg/faction/" . strtolower($faction) . ".png";
+    global $base_path;
+    return $base_path . "img/accountimg/faction/" . strtolower($faction) . ".png";
 }
 
 function raceIcon($race, $gender) {
+    global $base_path;
     $genderFolder = ($gender == 0) ? 'male' : 'female';
     $raceMap = [
         1 => 'human', 2 => 'orc', 3 => 'dwarf', 4 => 'nightelf',
@@ -24,17 +29,18 @@ function raceIcon($race, $gender) {
         29 => 'voidelf'
     ];
     $raceName = isset($raceMap[$race]) ? $raceMap[$race] : 'unknown';
-    return "/Sahtout/img/accountimg/race/{$genderFolder}/{$raceName}.png";
+    return $base_path . "img/accountimg/race/{$genderFolder}/{$raceName}.png";
 }
 
 function classIcon($class) {
+    global $base_path;
     $classMap = [
         1 => 'warrior', 2 => 'paladin', 3 => 'hunter', 4 => 'rogue',
         5 => 'priest', 6 => 'deathknight', 7 => 'shaman', 8 => 'mage',
         9 => 'warlock', 10 => 'monk', 11 => 'druid', 12 => 'demonhunter'
     ];
     $className = isset($classMap[$class]) ? $classMap[$class] : 'unknown';
-    return "/Sahtout/img/accountimg/class/{$className}.webp";
+    return $base_path . "img/accountimg/class/{$className}.webp";
 }
 
 function getTeamTypeName($type) {
@@ -132,115 +138,14 @@ $orderedMembers = array_merge($orderedMembers, $members);
             }
         }
     </script>
-    <style>
-        html, body {
-            height: 100%;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-        }
-        .arena-content {
-            flex: 1 0 auto;
-            min-height: calc(100vh - 200px); /* Adjust based on header/footer height */
-            margin-top: 120px; /* Increased for dropdown clearance */
-            overflow: visible !important;
-        }
-        .arena-content .tw-container {
-            overflow: visible !important;
-        }
-        .arena-content .table-container {
-            scrollbar-width: thin;
-            scrollbar-color: #ffcc00 #1f2937;
-            font-family: 'Arial', sans-serif;
-            border: 2px double #fcd34d;
-            border-top: 1px solid #ffffff;
-            border-bottom: 1px solid #ffffff;
-            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
-        }
-        .arena-content .table-container::-webkit-scrollbar {
-            width: 8px;
-        }
-        .arena-content .table-container::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-        .arena-content .table-container::-webkit-scrollbar-thumb {
-            background: #ffcc00;
-            border-radius: 4px;
-        }
-        .arena-content tr {
-            cursor: pointer;
-        }
-        .arena-content tr:not(.captain-row):hover {
-            background-color: #0078c9; /* Matches navbar hover */
-            transition: background-color 0.2s ease-in-out;
-        }
-        .arena-content tr.captain-row {
-            background: linear-gradient(to right, #fcd34d, #d97706);
-        }
-        .arena-content tr.captain-row:hover {
-            filter: brightness(1.2);
-            transition: filter 0.2s ease-in-out;
-        }
-        .arena-content .arena-icon, .arena-content .leader-icon {
-            width: 24px;
-            height: 24px;
-            vertical-align: middle;
-            margin-right: 4px;
-        }
-        .arena-content .team-header {
-            background: linear-gradient(to right, #4338ca, #1e1b4b);
-            border: 2px double #fcd34d;
-            border-top: 1px solid #ffffff;
-            border-bottom: 1px solid #ffffff;
-            text-shadow: 0 0 8px rgba(252, 211, 77, 0.8);
-        }
-        .arena-content .summary-container {
-            background: linear-gradient(to right, #4338ca, #1e1b4b);
-            border: 2px double #fcd34d;
-            border-top: 1px solid #ffffff;
-            border-bottom: 1px solid #ffffff;
-            box-shadow: 0 0 10px rgba(252, 211, 77, 0.5);
-            transition: all 0.3s ease-in-out;
-        }
-        .arena-content .summary-container:hover {
-            border-color: #4dd0e1;
-            transform: scale(1.02);
-        }
-        .arena-content .summary-item-2v2 {
-            background: linear-gradient(to right, #dc2626, #7f1d1d);
-        }
-        .arena-content .summary-item-3v3 {
-            background: linear-gradient(to right, #15803d, #064e3b);
-        }
-        .arena-content .summary-item-5v5 {
-            background: linear-gradient(to right, #1e40af, #1e1b4b);
-        }
-        .arena-content .summary-item-default {
-            background: linear-gradient(to right, #4338ca, #1e1b4b);
-        }
-        .arena-content .summary-item {
-            box-shadow: 0 0 5px rgba(252, 211, 77, 0.3);
-            transition: filter 0.2s ease-in-out;
-        }
-        .arena-content .summary-item:hover {
-            filter: brightness(1.2);
-        }
-        .arena-content .summary-value {
-            text-shadow: 0 0 5px rgba(252, 211, 77, 0.6);
-        }
-
-        /* Scope nav-container override to arena-nav-wrapper */
-        .arena-nav-wrapper .nav-container {
-            border: 2px double #4338ca;
-            margin-top: 20px;
-        }
-        .arena-content a {
-            color: #ffffff;
-            text-decoration: none;
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/armory/arenateam.css">
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/armory/arenanavbar.css">
+</head>
+<style>
+       :root{
+            --bg-armory:url('<?php echo $base_path; ?>img/backgrounds/bg-armory.jpg');
         }
     </style>
-</head>
 <body class="tw-bg-gray-900 tw-text-white">
     <div class="arena-content">
         <div class="tw-container tw-max-w-6xl tw-mx-auto tw-ml-0 tw-mr-auto sm:tw-mx-auto tw-px-2 tw-py-4 sm:tw-px-4 sm:tw-py-8">
@@ -250,12 +155,12 @@ $orderedMembers = array_merge($orderedMembers, $members);
                 </div>
             <?php else: ?>
                 <h1 class="team-header tw-text-[2rem] sm:tw-text-[2.5rem] tw-font-bold tw-text-center tw-text-gold-300 tw-mb-6 tw-p-2 sm:tw-p-4 tw-rounded-xl tw-max-w-6xl tw-mx-auto">
-                    <img src="/Sahtout/img/armory/arena.webp" alt="Arena Team" title="Arena Team" class="arena-icon inline-block">
+                    <img src="<?php echo $base_path; ?>img/armory/arena.webp" alt="Arena Team" title="Arena Team" class="arena-icon inline-block">
                     <?php echo htmlspecialchars($team['team_name']); ?> - <?php echo getTeamTypeName($team['type']); ?> <?php echo translate('arenateam_suffix', 'Arena Team'); ?>
                 </h1>
 
                 <div class="arena-nav-wrapper">
-                    <?php include_once '../../includes/arenanavbar.php'; ?>
+                    <?php include_once $project_root . 'includes/arenanavbar.php'; ?>
                 </div>
 
                 <!-- Team Summary -->
@@ -318,10 +223,10 @@ $orderedMembers = array_merge($orderedMembers, $members);
                             <?php else: ?>
                                 <?php foreach ($orderedMembers as $member): ?>
                                     <?php $faction = getFaction($member['race']); ?>
-                                    <tr class="<?php echo $member['guid'] == $team['captainGuid'] ? 'captain-row' : ''; ?> tw-transition tw-duration-200" onclick="window.location='/sahtout/pages/character.php?guid=<?php echo $member['guid']; ?>';">
+                                    <tr class="<?php echo $member['guid'] == $team['captainGuid'] ? 'captain-row' : ''; ?> tw-transition tw-duration-200" onclick="window.location='<?php echo $base_path; ?>pages/character.php?guid=<?php echo $member['guid']; ?>';">
                                         <td class="tw-py-2 tw-px-4 sm:tw-py-3 sm:tw-px-6">
                                             <?php if ($member['guid'] == $team['captainGuid']): ?>
-                                                <img src="/Sahtout/img/armory/leader.png" alt="Team Captain" title="Team Captain" class="leader-icon inline-block">
+                                                <img src="<?php echo $base_path; ?>img/armory/leader.png" alt="Team Captain" title="Team Captain" class="leader-icon inline-block">
                                             <?php endif; ?>
                                             <?php echo htmlspecialchars($member['name']); ?>
                                         </td>
@@ -344,6 +249,6 @@ $orderedMembers = array_merge($orderedMembers, $members);
             <?php endif; ?>
         </div>
     </div>
-    <?php include_once '../../includes/footer.php'; ?>
+    <?php include_once $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

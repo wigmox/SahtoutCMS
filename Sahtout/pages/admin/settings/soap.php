@@ -1,17 +1,19 @@
 <?php
 define('ALLOWED_ACCESS', true);
-require_once 'C:\xampp\htdocs\Sahtout\includes\session.php';
-require_once 'C:\xampp\htdocs\Sahtout\includes\config.php';
+// Include paths.php using __DIR__ to access $project_root and $base_path
+require_once __DIR__ . '/../../../includes/paths.php';
+require_once $project_root . 'includes/session.php';
+require_once $project_root . 'languages/language.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
-    header('Location: /Sahtout/login');
+    header("Location: {$base_path}login");
     exit;
 }
 
 $page_class = 'soap';
 $errors = [];
 $success = false;
-$soapConfigFile = realpath('C:\xampp\htdocs\Sahtout\includes\soap.conf.php');
+$soapConfigFile = realpath($project_root . 'includes/soap.conf.php');
 
 // Load current SOAP status
 $soap_status = 'not_configured';
@@ -46,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $stmt = $auth_db->prepare("SELECT id FROM account WHERE username = ?");
         if (!$stmt) {
-            $errors[] = translate('error_db_query', 'Database query error: %s', $auth_db->error);
+            $errors[] = sprintf(translate('error_db_query', 'Database query error: %s'), $auth_db->error);
         } else {
             $stmt->bind_param('s', $soapUser);
             $stmt->execute();
@@ -55,11 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
 
             if (!$accountId) {
-                $errors[] = translate('error_account_not_exist', 'Account %s does not exist in Auth DB.', $soapUser);
+                $errors[] = sprintf(translate('error_account_not_exist', 'Account %s does not exist in Auth DB.'), $soapUser);
             } else {
                 $stmt2 = $auth_db->prepare("SELECT gmlevel FROM account_access WHERE id = ? AND RealmID = -1");
                 if (!$stmt2) {
-                    $errors[] = translate('error_db_query', 'Database query error: %s', $auth_db->error);
+                    $errors[] = sprintf(translate('error_db_query', 'Database query error: %s'), $auth_db->error);
                 } else {
                     $stmt2->bind_param('i', $accountId);
                     $stmt2->execute();
@@ -68,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt2->close();
 
                     if (!$gmLevel || $gmLevel < 3) {
-                        $errors[] = translate('error_account_not_gm_level_3', 'Account %s exists but is not GM level 3.', $soapUser);
+                        $errors[] = sprintf(translate('error_account_not_gm_level_3', 'Account %s exists but is not GM level 3.'), $soapUser);
                     }
                 }
             }
@@ -90,9 +92,9 @@ if (!defined('ALLOWED_ACCESS')) {
 
         $configDir = dirname($soapConfigFile);
         if (!is_writable($configDir)) {
-            $errors[] = translate('error_config_dir_not_writable', 'Config directory is not writable: %s', $configDir);
+            $errors[] = sprintf(translate('error_config_dir_not_writable', 'Config directory is not writable: %s'), $configDir);
         } elseif (file_put_contents($soapConfigFile, $configContent) === false) {
-            $errors[] = translate('error_config_file_write_failed', 'Failed to write config file: %s', $soapConfigFile);
+            $errors[] = sprintf(translate('error_config_file_write_failed', 'Failed to write config file: %s'), $soapConfigFile);
         } else {
             $success = true;
             $soap_status = 'configured';
@@ -100,7 +102,7 @@ if (!defined('ALLOWED_ACCESS')) {
     }
 }
 
-require_once 'C:\xampp\htdocs\Sahtout\includes\header.php';
+require_once $project_root . 'includes/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($langCode); ?>">
@@ -110,145 +112,17 @@ require_once 'C:\xampp\htdocs\Sahtout\includes\header.php';
     <title><?php echo translate('title_soap_settings', 'SOAP Settings'); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Roboto', Arial, sans-serif;
-            background-color: #212529;
-            color: #212529;
-        }
-        .container-fluid {
-            padding: 0;
-        }
-        .main-content {
-            padding-top: 80px;
-            min-height: calc(100vh - 80px);
-            display: flex;
-            flex-direction: column;
-        }
-        .content {
-            padding: 1.5rem;
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            margin: 1rem;
-            text-align: center;
-            flex-grow: 1;
-        }
-        h2 {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
-            color: #212529;
-        }
-        .status-box, .error-box, .success-box, .info-box {
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            text-align: left;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .status-box {
-            background: #e9ecef;
-            border: 1px solid #ced4da;
-        }
-        .error-box {
-            background: #f8d7da;
-            border: 1px solid #f5c2c7;
-        }
-        .success-box {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-        }
-        .info-box {
-            background: #e9ecef;
-            border: 1px solid #ced4da;
-        }
-        .db-status {
-            display: flex;
-            align-items: center;
-            margin: 0.5rem 0;
-        }
-        .db-status-icon {
-            margin-right: 0.5rem;
-            font-size: 1.1rem;
-        }
-        .db-status-success {
-            color: #28a745;
-        }
-        .db-status-error {
-            color: #dc3545;
-        }
-        .db-status-muted {
-            color: #6c757d;
-        }
-        .error {
-            color: #dc3545;
-            font-weight: 500;
-            font-size: 0.95rem;
-        }
-        .success, .text-success {
-            color: #28a745;
-            font-weight: 500;
-            font-size: 0.95rem;
-        }
-        .text-muted {
-            color: #6c757d;
-            font-weight: 500;
-            font-size: 0.95rem;
-        }
-        .form-control {
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .btn-primary {
-            max-width: 400px;
-            width: 100%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .info-title {
-            font-weight: bold;
-            color: #212529;
-            margin-bottom: 10px;
-            cursor: pointer;
-        }
-        .info-content {
-            display: none;
-            color: #212529;
-            line-height: 1.5;
-        }
-        @media (max-width: 768px) {
-            .main-content {
-                padding-top: 60px;
-                padding-left: 0;
-                padding-right: 0;
-            }
-            .content {
-                margin: 0.5rem;
-                padding: 1rem;
-            }
-            .form-control, .btn-primary, .status-box, .error-box, .success-box, .info-box {
-                max-width: 100%;
-            }
-        }
-    </style>
-    <script>
-        function toggleInfo(el) {
-            const content = el.nextElementSibling;
-            content.style.display = content.style.display === 'none' ? 'block' : 'none';
-        }
-    </script>
+    <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/soap.css">
+     <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/admin_sidebar.css">
+     <link rel="stylesheet" href="<?php echo $base_path; ?>assets/css/admin/settings/settings_navbar.css">
+   <script src="<?php echo $base_path; ?>assets/js/pages/admin/settings/soap.js"></script>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <?php include __DIR__ . '/../../../includes/admin_sidebar.php'; ?>
+            <?php include $project_root . 'includes/admin_sidebar.php'; ?>
             <main class="col-md-10 main-content">
-                <?php include 'C:\xampp\htdocs\Sahtout\pages\admin\settings\settings_navbar.php'; ?>
+                <?php include $project_root . 'pages/admin/settings/settings_navbar.php'; ?>
                 <div class="content">
                     <h2><?php echo translate('header_soap_settings', 'SOAP Settings'); ?></h2>
 
@@ -297,6 +171,7 @@ require_once 'C:\xampp\htdocs\Sahtout\includes\header.php';
                                     <input type="password" id="soap_pass" name="soap_pass" class="form-control" placeholder="<?php echo translate('placeholder_soap_pass', 'SOAP password=Account password'); ?>" value="<?php echo htmlspecialchars($soapPass); ?>" required>
                                 </div>
                                 <button type="submit" class="btn btn-primary"><?php echo translate('button_save_verify_soap', 'Save & Verify SOAP'); ?></button>
+                                <p class="form-text mt-2"><?php echo translate('note_soap_config', 'Note: Ensure the account has GM level 3 and SOAP is enabled in your worldserver.conf.'); ?></p>
                             </div>
                         </div>
                     </form>
@@ -318,6 +193,6 @@ require_once 'C:\xampp\htdocs\Sahtout\includes\header.php';
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    <?php include 'C:\xampp\htdocs\Sahtout\includes\footer.php'; ?>
+    <?php include $project_root . 'includes/footer.php'; ?>
 </body>
 </html>

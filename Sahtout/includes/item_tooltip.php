@@ -3,6 +3,7 @@ if (!defined('ALLOWED_ACCESS')) {
     header('HTTP/1.1 403 Forbidden');
     exit('Direct access to this file is not allowed.');
 }
+require_once __DIR__ . '/paths.php'; // Include paths.php
 ?>
 <?php
 // Data definitions
@@ -115,10 +116,10 @@ $specialStats = [
 ];
 
 $socketColors = [
-    1 => ['name' => 'Meta', 'icon' => '/Sahtout/img/shopimg/items/socketicons/socket_meta.gif'],
-    2 => ['name' => 'Red', 'icon' => '/Sahtout/img/shopimg/items/socketicons/socket_red.gif'],
-    4 => ['name' => 'Yellow', 'icon' => '/Sahtout/img/shopimg/items/socketicons/socket_yellow.gif'],
-    8 => ['name' => 'Blue', 'icon' => '/Sahtout/img/shopimg/items/socketicons/socket_blue.gif']
+    1 => ['name' => 'Meta', 'icon' => $base_path . 'img/shopimg/items/socketicons/socket_meta.gif'],
+    2 => ['name' => 'Red', 'icon' => $base_path . 'img/shopimg/items/socketicons/socket_red.gif'],
+    4 => ['name' => 'Yellow', 'icon' => $base_path . 'img/shopimg/items/socketicons/socket_yellow.gif'],
+    8 => ['name' => 'Blue', 'icon' => $base_path . 'img/shopimg/items/socketicons/socket_blue.gif']
 ];
 
 $classRestrictions = [

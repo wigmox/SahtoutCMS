@@ -6,12 +6,13 @@ if (!defined('ALLOWED_ACCESS')) {
 if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
     exit(translate('error_access_denied')); // Use translation for error message
 }
+require_once __DIR__ . '/paths.php';
 
 // Realm list configuration
 $realmlist = [
     [
         'id' => 1,
-        'name' => translate('realm_sahtout_name'), // Translated realm name
+        'name' => 'Sahtout realm',
         'address' => '127.0.0.1',
         'port' => 8085,
         'logo' => 'img/logos/realm1_logo.webp'
